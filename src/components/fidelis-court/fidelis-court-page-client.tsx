@@ -14,8 +14,13 @@ import { ConstructionTimeline } from "@/components/fidelis-court/construction-ti
 import { ConstructionSection } from "@/components/home/construction-section";
 import { FidelisCtaCards } from "@/components/fidelis-court/fidelis-cta-cards";
 import { LocationSection } from "@/components/fidelis-court/location-section";
+import type { Facility } from "@/constants/facilities";
 
-export default function FidelisCourtPageClient() {
+export default function FidelisCourtPageClient({
+  facilities,
+}: {
+  facilities: Facility[];
+}) {
   const scrollToContact = () => {
     const target = document.getElementById("contact");
     if (target) target.scrollIntoView({ behavior: "smooth" });
@@ -31,7 +36,7 @@ export default function FidelisCourtPageClient() {
         <FidelisHomesSection onReserveUnit={scrollToContact} />
         <FidelisScrollGallery />
         <FidelisBrochureSection onBookInspectionClick={scrollToContact} />
-        <FacilitiesSection />
+        <FacilitiesSection facilities={facilities} />
         <ConstructionTimeline />
         <ConstructionSection />
         <FidelisCtaCards />

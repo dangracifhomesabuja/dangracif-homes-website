@@ -9,6 +9,7 @@ import { ConstructionMilestone, ConstructionMilestoneSchema } from "@/lib/db/ent
 import { SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
 import { getAdminSession } from "@/lib/auth";
 import { ILike } from "typeorm";
+import { normalizeFacilities } from "@/constants/facilities";
 
 function toPlain<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
@@ -389,11 +390,26 @@ export async function saveMultipleSiteConfigs(
   configs: Record<string, unknown>
 ) {
   await requireAuth();
+  const includesFacilities = Object.prototype.hasOwnProperty.call(
+    configs,
+    "facilities"
+  );
+  const facilities = includesFacilities
+    ? normalizeFacilities(configs.facilities)
+    : null;
+  if (includesFacilities && !facilities) {
+    throw new Error("Please provide valid facility names and icons.");
+  }
+
   const ds = await getDatabaseConnection();
   const repo = ds.getRepository(SiteConfigSchema);
 
   for (const [key, val] of Object.entries(configs)) {
-    const stringVal = typeof val === "string" ? val : JSON.stringify(val) ?? "";
+    const configValue = key === "facilities" ? facilities : val;
+    const stringVal =
+      typeof configValue === "string"
+        ? configValue
+        : JSON.stringify(configValue) ?? "";
     let item = await repo.findOne({ where: { key } });
     if (item) {
       item.value = stringVal;

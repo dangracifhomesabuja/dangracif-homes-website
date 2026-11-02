@@ -8,6 +8,11 @@ import { ConstructionMilestone, ConstructionMilestoneSchema } from "@/lib/db/ent
 import { PropertyUnit, PropertyUnitSchema } from "@/lib/db/entities/PropertyUnit";
 import { SiteConfig, SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
 import { BLOG_POSTS } from "@/constants/blog";
+import {
+  DEFAULT_FACILITIES,
+  type Facility,
+  normalizeFacilities,
+} from "@/constants/facilities";
 
 const DEFAULT_MILESTONES = [
   { phase: "Phase 1", date: "Apr 2026", title: "Groundbreaking & site mobilisation" },
@@ -115,4 +120,30 @@ export async function getPublicSiteConfig() {
     console.warn("Could not fetch site config:", err);
     return {};
   }
+}
+
+export async function getPublicFacilities(): Promise<Facility[]> {
+  try {
+    const ds = await getDatabaseConnection();
+    const config = await ds
+      .getRepository(SiteConfigSchema)
+      .findOne({ where: { key: "facilities" } });
+
+    if (!config) {
+      return DEFAULT_FACILITIES.map((facility) => ({ ...facility }));
+    }
+
+    const facilities = normalizeFacilities(JSON.parse(config.value));
+    if (facilities) {
+      return toPlain(facilities);
+    }
+
+    console.warn(
+      "Could not parse configured Fidelis Court facilities; using defaults."
+    );
+  } catch (err) {
+    console.warn("Could not fetch Fidelis Court facilities; using defaults:", err);
+  }
+
+  return DEFAULT_FACILITIES.map((facility) => ({ ...facility }));
 }

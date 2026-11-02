@@ -17,12 +17,23 @@ import {
   MessageSquare,
   Images,
   FileText,
+  ListChecks,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveMultipleSiteConfigs } from "@/app/actions/admin-content";
 import { SITE_IMAGE_GROUPS } from "@/constants/site-images";
+import {
+  DEFAULT_FACILITIES,
+  FACILITY_ICON_OPTIONS,
+  type Facility,
+  normalizeFacilities,
+} from "@/constants/facilities";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { ImageUploader } from "./ui/image-uploader";
 import { DocumentUploader } from "./ui/document-uploader";
+import { ConfirmModal } from "./ui/confirm-modal";
 import {
   DatePicker,
   formatDatePickerValue,
@@ -61,14 +72,33 @@ function getString(
   return typeof value === "string" ? value : fallback;
 }
 
+const FACILITY_ICON_SELECT_OPTIONS = FACILITY_ICON_OPTIONS.map(
+  ({ value, label }) => ({ value, label })
+);
+
 export function AdminSiteConfigClient({
   initialConfigs,
   initialTab,
 }: AdminSiteConfigClientProps) {
   const [activeTab, setActiveTab] = React.useState<
-    "estate" | "stats" | "contact" | "open_house" | "images"
-  >(initialTab === "images" ? "images" : "estate");
+    "estate" | "stats" | "contact" | "open_house" | "facilities" | "images"
+  >(
+    initialTab === "images" || initialTab === "facilities"
+      ? initialTab
+      : "estate"
+  );
   const [isSaving, setIsSaving] = React.useState(false);
+  const [facilities, setFacilities] = React.useState<Facility[]>(
+    () =>
+      normalizeFacilities(initialConfigs.facilities) ??
+      DEFAULT_FACILITIES.map((facility) => ({ ...facility }))
+  );
+  const [deleteTarget, setDeleteTarget] = React.useState<{
+    index: number;
+    label: string;
+  } | null>(null);
+  const shouldScrollToNewFacility = React.useRef(false);
+  const newFacilityInputRef = React.useRef<HTMLInputElement>(null);
   const imageConfig = getConfigGroup(initialConfigs, "site_images");
   const [siteImages, setSiteImages] = React.useState<Record<string, string>>(
     () => {
@@ -157,6 +187,19 @@ export function AdminSiteConfigClient({
     ),
   });
 
+  React.useEffect(() => {
+    if (!shouldScrollToNewFacility.current) return;
+
+    shouldScrollToNewFacility.current = false;
+    requestAnimationFrame(() => {
+      newFacilityInputRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      newFacilityInputRef.current?.focus({ preventScroll: true });
+    });
+  }, [facilities.length]);
+
   const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -166,6 +209,7 @@ export function AdminSiteConfigClient({
         stats,
         contact,
         open_house: openHouse,
+        facilities,
         site_images: siteImages,
         brochure_url: brochureUrl,
       });
@@ -186,6 +230,7 @@ export function AdminSiteConfigClient({
     { id: "stats", label: "Key Metrics", icon: BarChart3 },
     { id: "contact", label: "Contact & Hours", icon: Phone },
     { id: "open_house", label: "Open House Banner", icon: CalendarCheck },
+    { id: "facilities", label: "Facilities & Services", icon: ListChecks },
     { id: "images", label: "Site Images", icon: Images },
   ] as const;
 
@@ -609,6 +654,101 @@ export function AdminSiteConfigClient({
         </div>
       )}
 
+      {activeTab === "facilities" && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/80 bg-white p-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Fidelis Court Facilities &amp; Services
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Add, edit, remove, and choose icons for the items shown on the Fidelis Court page.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={facilities.length >= 100}
+              onClick={() => {
+                shouldScrollToNewFacility.current = true;
+                setFacilities((current) => [
+                  ...current,
+                  { icon: "Building2", label: "" },
+                ]);
+              }}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0754C6] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#0648AB] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add facility
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {facilities.map((facility, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200/80 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-center"
+              >
+                <input
+                  ref={
+                    index === facilities.length - 1
+                      ? newFacilityInputRef
+                      : undefined
+                  }
+                  type="text"
+                  value={facility.label}
+                  onChange={(event) =>
+                    setFacilities((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, label: event.target.value }
+                          : item
+                      )
+                    )
+                  }
+                  maxLength={120}
+                  aria-label={`Facility ${index + 1} name`}
+                  placeholder="Facility or service name"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                />
+                <CustomSelect
+                  value={facility.icon}
+                  onChange={(iconValue) => {
+                    const icon = FACILITY_ICON_OPTIONS.find(
+                      (option) => option.value === iconValue
+                    )?.value;
+                    if (!icon) return;
+                    setFacilities((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, icon } : item
+                      )
+                    );
+                  }}
+                  options={FACILITY_ICON_SELECT_OPTIONS}
+                  className="min-w-0"
+                  triggerClassName="h-10 rounded-lg border-slate-200 bg-slate-50 px-3.5 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteTarget({ index, label: facility.label })
+                  }
+                  aria-label={`Remove facility ${index + 1}`}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-100 px-3 py-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sm:hidden">Remove</span>
+                </button>
+              </div>
+            ))}
+            {facilities.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                No facilities listed. Add one to show it on the Fidelis Court page.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {activeTab === "images" && (
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -665,6 +805,20 @@ export function AdminSiteConfigClient({
           ))}
         </section>
       )}
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          setFacilities((current) =>
+            current.filter((_, index) => index !== deleteTarget.index)
+          );
+          setDeleteTarget(null);
+        }}
+        title="Delete Facility"
+        description="Are you sure you want to remove this facility from the Fidelis Court page?"
+        itemName={deleteTarget?.label || "Untitled facility"}
+      />
     </form>
   );
 }
