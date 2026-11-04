@@ -100,24 +100,24 @@ export async function getDatabaseConnection(): Promise<DataSource> {
   if (AppDataSource.isInitialized) return AppDataSource;
 
   const initialization = AppDataSource.initialize().then(() => {
-    const requiredEntities = [
-      "User",
-      "PropertyUnit",
-      "LeadInquiry",
-      "BlogPost",
-      "FaqItem",
-      "ConstructionMilestone",
-      "SiteConfig",
-      "MediaAsset",
+    const requiredTables = [
+      "users",
+      "property_units",
+      "lead_inquiries",
+      "blog_posts",
+      "faq_items",
+      "construction_milestones",
+      "site_config",
+      "media_assets",
     ];
-    const missingEntities = requiredEntities.filter(
+    const missingTables = requiredTables.filter(
       (name) => !AppDataSource.hasMetadata(name)
     );
-    if (missingEntities.length > 0) {
+    if (missingTables.length > 0) {
       throw new Error(
-        `Database entity metadata was not registered: ${missingEntities.join(", ")}. ` +
-          `Registered entities: ${AppDataSource.entityMetadatas
-            .map(({ name }) => name)
+        `Database entity metadata was not registered for tables: ${missingTables.join(", ")}. ` +
+          `Registered tables: ${AppDataSource.entityMetadatas
+            .map(({ tableName }) => tableName)
             .join(", ")}.`
       );
     }

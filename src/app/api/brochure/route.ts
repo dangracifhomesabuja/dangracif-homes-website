@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const dataSource = await getDatabaseConnection();
     const config = await dataSource
-      .getRepository<SiteConfig>("SiteConfig")
+      .getRepository<SiteConfig>("site_config")
       .findOne({ where: { key: "brochure_url" } });
 
     if (!config?.value) {

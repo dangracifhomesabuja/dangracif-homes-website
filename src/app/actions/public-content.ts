@@ -37,7 +37,7 @@ function toPlain<T>(data: T): T {
 export async function getPublicBlogPosts() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<BlogPost>("BlogPost");
+    const repo = ds.getRepository<BlogPost>("blog_posts");
     const posts = await repo.find({
       where: { published: true },
       order: { createdAt: "DESC" },
@@ -55,7 +55,7 @@ export async function getPublicBlogPosts() {
 export async function getPublicFaqs() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<FaqItem>("FaqItem");
+    const repo = ds.getRepository<FaqItem>("faq_items");
     const items = await repo.find({
       where: { published: true },
       order: { sortOrder: "ASC", createdAt: "ASC" },
@@ -74,7 +74,7 @@ export async function getPublicMilestones() {
   try {
     const ds = await getDatabaseConnection();
     const repo =
-      ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
+      ds.getRepository<ConstructionMilestone>("construction_milestones");
     const milestones = await repo.find({
       order: { phaseNumber: "ASC" },
     });
@@ -97,7 +97,7 @@ export async function getPublicMilestones() {
 export async function getPublicUnits() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<PropertyUnit>("PropertyUnit");
+    const repo = ds.getRepository<PropertyUnit>("property_units");
     const units = await repo.find({
       order: { id: "ASC" },
     });
@@ -114,9 +114,9 @@ export async function getPublicUnits() {
 export async function getPublicSiteConfig() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<SiteConfig>("SiteConfig");
+    const repo = ds.getRepository<SiteConfig>("site_config");
     const configs = await repo.find();
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const item of configs) {
       try {
         result[item.key] = JSON.parse(item.value);
@@ -135,7 +135,7 @@ export async function getPublicFacilities(): Promise<Facility[]> {
   try {
     const ds = await getDatabaseConnection();
     const config = await ds
-      .getRepository<SiteConfig>("SiteConfig")
+      .getRepository<SiteConfig>("site_config")
       .findOne({ where: { key: "facilities" } });
 
     if (!config) {
@@ -159,7 +159,7 @@ export async function getPublicFacilities(): Promise<Facility[]> {
 
 export async function getPublicOtherProjects(): Promise<OtherProject[]> {
   const config = await (await getDatabaseConnection())
-    .getRepository<SiteConfig>("SiteConfig")
+    .getRepository<SiteConfig>("site_config")
     .findOne({ where: { key: "other_projects" } });
   if (!config) return [];
 
@@ -179,7 +179,7 @@ export async function getPublicOtherProjects(): Promise<OtherProject[]> {
 
 export async function getPublicCareerOpenings(): Promise<CareerOpening[]> {
   const config = await (await getDatabaseConnection())
-    .getRepository<SiteConfig>("SiteConfig")
+    .getRepository<SiteConfig>("site_config")
     .findOne({ where: { key: "career_openings" } });
   if (!config) return [];
 

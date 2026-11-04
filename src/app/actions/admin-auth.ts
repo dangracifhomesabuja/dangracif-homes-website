@@ -30,7 +30,7 @@ export async function adminLoginAction(formData: {
 
   try {
     const dataSource = await getDatabaseConnection();
-    const userRepo = dataSource.getRepository<User>("User");
+    const userRepo = dataSource.getRepository<User>("users");
 
     let user = await userRepo.findOne({
       where: { email },
@@ -172,7 +172,7 @@ export async function updateAdminPasswordAction(formData: {
 
   try {
     const dataSource = await getDatabaseConnection();
-    const userRepo = dataSource.getRepository<User>("User");
+    const userRepo = dataSource.getRepository<User>("users");
 
     const user = await userRepo.findOne({
       where: { id: session.id },

@@ -39,7 +39,7 @@ export async function getBlogPosts(search?: string): Promise<BlogPost[]> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<BlogPost>("BlogPost");
+    const repo = ds.getRepository<BlogPost>("blog_posts");
 
     const whereClause = search
       ? [{ title: ILike(`%${search}%`) }, { summary: ILike(`%${search}%`) }]
@@ -81,7 +81,7 @@ export async function getBlogPosts(search?: string): Promise<BlogPost[]> {
 export async function getBlogPostById(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<BlogPost>("BlogPost");
+  const repo = ds.getRepository<BlogPost>("blog_posts");
   const post = await repo.findOne({ where: { id } });
   return post ? toPlain(post) : null;
 }
@@ -101,7 +101,7 @@ export async function saveBlogPost(data: {
 }) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<BlogPost>("BlogPost");
+  const repo = ds.getRepository<BlogPost>("blog_posts");
 
   let post: BlogPost;
   if (data.id) {
@@ -135,7 +135,7 @@ export async function saveBlogPost(data: {
 export async function deleteBlogPost(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<BlogPost>("BlogPost");
+  const repo = ds.getRepository<BlogPost>("blog_posts");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/blog");
@@ -145,7 +145,7 @@ export async function deleteBlogPost(id: string) {
 export async function toggleBlogPostPublished(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<BlogPost>("BlogPost");
+  const repo = ds.getRepository<BlogPost>("blog_posts");
   const post = await repo.findOne({ where: { id } });
   if (!post) throw new Error("Blog post not found");
 
@@ -164,7 +164,7 @@ export async function getFaqItems(search?: string): Promise<FaqItem[]> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<FaqItem>("FaqItem");
+    const repo = ds.getRepository<FaqItem>("faq_items");
 
     const whereClause = search
       ? [{ question: ILike(`%${search}%`) }, { answer: ILike(`%${search}%`) }]
@@ -202,7 +202,7 @@ export async function saveFaqItem(data: {
 }) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<FaqItem>("FaqItem");
+  const repo = ds.getRepository<FaqItem>("faq_items");
 
   let faq: FaqItem;
   if (data.id) {
@@ -231,7 +231,7 @@ export async function saveFaqItem(data: {
 export async function deleteFaqItem(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<FaqItem>("FaqItem");
+  const repo = ds.getRepository<FaqItem>("faq_items");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/faqs");
@@ -241,7 +241,7 @@ export async function deleteFaqItem(id: string) {
 export async function toggleFaqPublished(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<FaqItem>("FaqItem");
+  const repo = ds.getRepository<FaqItem>("faq_items");
   const item = await repo.findOne({ where: { id } });
   if (!item) throw new Error("FAQ item not found");
 
@@ -261,7 +261,7 @@ export async function getMilestones(): Promise<ConstructionMilestone[]> {
   try {
     const ds = await getDatabaseConnection();
     const repo =
-      ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
+      ds.getRepository<ConstructionMilestone>("construction_milestones");
     const items = await repo.find({
       order: { phaseNumber: "ASC" },
     });
@@ -316,7 +316,7 @@ export async function saveMilestone(data: {
   await requireAuth();
   const ds = await getDatabaseConnection();
   const repo =
-    ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
+    ds.getRepository<ConstructionMilestone>("construction_milestones");
 
   let milestone: ConstructionMilestone;
   if (data.id) {
@@ -337,7 +337,7 @@ export async function deleteMilestone(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
   const repo =
-    ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
+    ds.getRepository<ConstructionMilestone>("construction_milestones");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/timeline");
@@ -352,7 +352,7 @@ export async function getSiteConfigs(): Promise<Record<string, unknown>> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<SiteConfig>("SiteConfig");
+    const repo = ds.getRepository<SiteConfig>("site_config");
     const configs = await repo.find();
 
     const result: Record<string, unknown> = {};
@@ -379,7 +379,7 @@ export async function getSiteConfigs(): Promise<Record<string, unknown>> {
 export async function saveSiteConfig(key: string, value: unknown) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<SiteConfig>("SiteConfig");
+  const repo = ds.getRepository<SiteConfig>("site_config");
 
   const stringVal =
     typeof value === "string" ? value : JSON.stringify(value) ?? "";
@@ -413,7 +413,7 @@ export async function saveMultipleSiteConfigs(
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<SiteConfig>("SiteConfig");
+  const repo = ds.getRepository<SiteConfig>("site_config");
 
   for (const [key, val] of Object.entries(configs)) {
     const configValue = key === "facilities" ? facilities : val;
@@ -439,7 +439,7 @@ export async function saveMultipleSiteConfigs(
 export async function getOtherProjects(): Promise<OtherProject[]> {
   await requireAuth();
   const config = await (await getDatabaseConnection())
-    .getRepository<SiteConfig>("SiteConfig")
+    .getRepository<SiteConfig>("site_config")
     .findOne({ where: { key: "other_projects" } });
   if (!config) return [];
 
@@ -467,7 +467,7 @@ export async function saveOtherProjects(value: unknown) {
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<SiteConfig>("SiteConfig");
+  const repo = ds.getRepository<SiteConfig>("site_config");
   let config = await repo.findOne({ where: { key: "other_projects" } });
   const serializedProjects = JSON.stringify(projects);
   if (config) {
@@ -485,7 +485,7 @@ export async function saveOtherProjects(value: unknown) {
 export async function getCareerOpenings(): Promise<CareerOpening[]> {
   await requireAuth();
   const config = await (await getDatabaseConnection())
-    .getRepository<SiteConfig>("SiteConfig")
+    .getRepository<SiteConfig>("site_config")
     .findOne({ where: { key: "career_openings" } });
   if (!config) return [];
 
@@ -513,7 +513,7 @@ export async function saveCareerOpenings(value: unknown) {
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository<SiteConfig>("SiteConfig");
+  const repo = ds.getRepository<SiteConfig>("site_config");
   let config = await repo.findOne({ where: { key: "career_openings" } });
   const serializedOpenings = JSON.stringify(openings);
   if (config) {

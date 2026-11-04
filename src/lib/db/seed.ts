@@ -10,7 +10,7 @@ export async function runSeed() {
   const dataSource = await getDatabaseConnection();
 
   // 1. Seed Admin User
-  const userRepo = dataSource.getRepository<User>("User");
+  const userRepo = dataSource.getRepository<User>("users");
   const adminEmail = process.env.ADMIN_DEFAULT_EMAIL || "admin@dangracifhomes.com";
   const existingAdmin = await userRepo.findOne({ where: { email: adminEmail } });
 
@@ -31,7 +31,7 @@ export async function runSeed() {
   }
 
   // 2. Seed Property Units
-  const unitRepo = dataSource.getRepository<PropertyUnit>("PropertyUnit");
+  const unitRepo = dataSource.getRepository<PropertyUnit>("property_units");
   const defaultUnits = [
     {
       id: "1-bed",
@@ -80,7 +80,7 @@ export async function runSeed() {
   }
 
   // 3. Seed Sample Leads (if none exist)
-  const leadRepo = dataSource.getRepository<LeadInquiry>("LeadInquiry");
+  const leadRepo = dataSource.getRepository<LeadInquiry>("lead_inquiries");
   const leadsCount = await leadRepo.count();
 
   if (leadsCount === 0) {

@@ -11,7 +11,7 @@ export async function getPublicSiteOverrides(): Promise<{
     const dataSource = await getDatabaseConnection();
     const overrides: Record<string, string> = {};
     const configs = await dataSource
-      .getRepository<SiteConfig>("SiteConfig")
+      .getRepository<SiteConfig>("site_config")
       .find({
         where: [
           { key: "site_images" },
