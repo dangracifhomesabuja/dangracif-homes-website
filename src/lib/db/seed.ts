@@ -1,16 +1,16 @@
 import "reflect-metadata";
 import bcrypt from "bcrypt";
 import { getDatabaseConnection } from "./data-source";
-import { User, UserSchema } from "./entities/User";
-import { PropertyUnit, PropertyUnitSchema } from "./entities/PropertyUnit";
-import { LeadInquiry, LeadInquirySchema } from "./entities/LeadInquiry";
+import { User } from "./entities/User";
+import { PropertyUnit } from "./entities/PropertyUnit";
+import { LeadInquiry } from "./entities/LeadInquiry";
 
 export async function runSeed() {
   console.log("🌱 Starting database seeding...");
   const dataSource = await getDatabaseConnection();
 
   // 1. Seed Admin User
-  const userRepo = dataSource.getRepository(UserSchema);
+  const userRepo = dataSource.getRepository<User>("User");
   const adminEmail = process.env.ADMIN_DEFAULT_EMAIL || "admin@dangracifhomes.com";
   const existingAdmin = await userRepo.findOne({ where: { email: adminEmail } });
 
@@ -31,7 +31,7 @@ export async function runSeed() {
   }
 
   // 2. Seed Property Units
-  const unitRepo = dataSource.getRepository(PropertyUnitSchema);
+  const unitRepo = dataSource.getRepository<PropertyUnit>("PropertyUnit");
   const defaultUnits = [
     {
       id: "1-bed",
@@ -80,7 +80,7 @@ export async function runSeed() {
   }
 
   // 3. Seed Sample Leads (if none exist)
-  const leadRepo = dataSource.getRepository(LeadInquirySchema);
+  const leadRepo = dataSource.getRepository<LeadInquiry>("LeadInquiry");
   const leadsCount = await leadRepo.count();
 
   if (leadsCount === 0) {

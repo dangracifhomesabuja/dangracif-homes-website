@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Careers | Dangracif Homes",
-  description:
-    "Explore current career opportunities at Dangracif Homes. We are hiring a Social Media Officer and a Sales Officer.",
+  description: "Explore current career opportunities at Dangracif Homes.",
 };
 
 export default async function CareersPage() {

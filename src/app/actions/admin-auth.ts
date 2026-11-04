@@ -4,7 +4,7 @@ import "reflect-metadata";
 import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { User, UserSchema } from "@/lib/db/entities/User";
+import { User } from "@/lib/db/entities/User";
 import {
   signAdminToken,
   AUTH_COOKIE_NAME,
@@ -30,7 +30,7 @@ export async function adminLoginAction(formData: {
 
   try {
     const dataSource = await getDatabaseConnection();
-    const userRepo = dataSource.getRepository(UserSchema);
+    const userRepo = dataSource.getRepository<User>("User");
 
     let user = await userRepo.findOne({
       where: { email },
@@ -172,7 +172,7 @@ export async function updateAdminPasswordAction(formData: {
 
   try {
     const dataSource = await getDatabaseConnection();
-    const userRepo = dataSource.getRepository(UserSchema);
+    const userRepo = dataSource.getRepository<User>("User");
 
     const user = await userRepo.findOne({
       where: { id: session.id },

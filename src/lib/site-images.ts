@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
+import { SiteConfig } from "@/lib/db/entities/SiteConfig";
 
 export async function getPublicSiteOverrides(): Promise<{
   images: Record<string, string>;
@@ -11,7 +11,7 @@ export async function getPublicSiteOverrides(): Promise<{
     const dataSource = await getDatabaseConnection();
     const overrides: Record<string, string> = {};
     const configs = await dataSource
-      .getRepository(SiteConfigSchema)
+      .getRepository<SiteConfig>("SiteConfig")
       .find({
         where: [
           { key: "site_images" },

@@ -3,8 +3,8 @@
 import "reflect-metadata";
 import { revalidatePath } from "next/cache";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { LeadInquiry, LeadInquirySchema, InquiryType, InquiryStatus } from "@/lib/db/entities/LeadInquiry";
-import { PropertyUnit, PropertyUnitSchema } from "@/lib/db/entities/PropertyUnit";
+import { LeadInquiry, InquiryType, InquiryStatus } from "@/lib/db/entities/LeadInquiry";
+import { PropertyUnit } from "@/lib/db/entities/PropertyUnit";
 import { getAdminSession } from "@/lib/auth";
 import { ILike } from "typeorm";
 
@@ -66,8 +66,8 @@ export async function getDashboardStats() {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const leadRepo = ds.getRepository(LeadInquirySchema);
-    const unitRepo = ds.getRepository(PropertyUnitSchema);
+    const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
+    const unitRepo = ds.getRepository<PropertyUnit>("PropertyUnit");
 
     const [totalLeads, newLeads, scheduledInspections, closedLeads] = await Promise.all([
       leadRepo.count(),
@@ -195,7 +195,7 @@ export async function getLeadsList(params?: {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const leadRepo = ds.getRepository(LeadInquirySchema);
+    const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
 
     const whereClause: Record<string, unknown> = {};
 
@@ -305,7 +305,7 @@ export async function getLeadsList(params?: {
 export async function updateLeadStatusAction(id: string, status: InquiryStatus) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const leadRepo = ds.getRepository(LeadInquirySchema);
+  const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
 
   await leadRepo.update(id, { status });
   revalidatePath("/admin");
@@ -315,7 +315,7 @@ export async function updateLeadStatusAction(id: string, status: InquiryStatus) 
 export async function updateLeadNotesAction(id: string, notes: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const leadRepo = ds.getRepository(LeadInquirySchema);
+  const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
 
   await leadRepo.update(id, { notes });
   revalidatePath("/admin");
@@ -325,7 +325,7 @@ export async function updateLeadNotesAction(id: string, notes: string) {
 export async function deleteLeadAction(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const leadRepo = ds.getRepository(LeadInquirySchema);
+  const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
 
   await leadRepo.delete(id);
   revalidatePath("/admin");
@@ -335,7 +335,7 @@ export async function deleteLeadAction(id: string) {
 export async function getPropertyUnitsList() {
   try {
     const ds = await getDatabaseConnection();
-    const unitRepo = ds.getRepository(PropertyUnitSchema);
+    const unitRepo = ds.getRepository<PropertyUnit>("PropertyUnit");
     const units = await unitRepo.find({ order: { id: "ASC" } });
     if (!units || units.length === 0) {
       return toPlain(DEFAULT_PROPERTY_UNITS);
@@ -353,7 +353,7 @@ export async function updatePropertyUnitAction(
 ) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const unitRepo = ds.getRepository(PropertyUnitSchema);
+  const unitRepo = ds.getRepository<PropertyUnit>("PropertyUnit");
 
   await unitRepo.update(id, data);
   revalidatePath("/admin");
@@ -378,7 +378,7 @@ export async function submitLeadInquiry(data: {
 }) {
   try {
     const ds = await getDatabaseConnection();
-    const leadRepo = ds.getRepository(LeadInquirySchema);
+    const leadRepo = ds.getRepository<LeadInquiry>("LeadInquiry");
 
     const newLead = leadRepo.create({
       type: data.type || "contact",

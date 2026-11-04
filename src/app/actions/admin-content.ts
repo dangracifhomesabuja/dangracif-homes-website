@@ -3,20 +3,18 @@
 import "reflect-metadata";
 import { revalidatePath } from "next/cache";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { BlogPost, BlogPostSchema } from "@/lib/db/entities/BlogPost";
-import { FaqItem, FaqItemSchema } from "@/lib/db/entities/FaqItem";
-import { ConstructionMilestone, ConstructionMilestoneSchema } from "@/lib/db/entities/ConstructionMilestone";
-import { SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
+import { BlogPost } from "@/lib/db/entities/BlogPost";
+import { FaqItem } from "@/lib/db/entities/FaqItem";
+import { ConstructionMilestone } from "@/lib/db/entities/ConstructionMilestone";
+import { SiteConfig } from "@/lib/db/entities/SiteConfig";
 import { getAdminSession } from "@/lib/auth";
 import { ILike } from "typeorm";
 import { normalizeFacilities } from "@/constants/facilities";
 import {
-  DEFAULT_OTHER_PROJECTS,
   normalizeOtherProjects,
   type OtherProject,
 } from "@/constants/other-projects";
 import {
-  DEFAULT_CAREER_OPENINGS,
   normalizeCareerOpenings,
   type CareerOpening,
 } from "@/constants/careers";
@@ -41,7 +39,7 @@ export async function getBlogPosts(search?: string): Promise<BlogPost[]> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(BlogPostSchema);
+    const repo = ds.getRepository<BlogPost>("BlogPost");
 
     const whereClause = search
       ? [{ title: ILike(`%${search}%`) }, { summary: ILike(`%${search}%`) }]
@@ -83,7 +81,7 @@ export async function getBlogPosts(search?: string): Promise<BlogPost[]> {
 export async function getBlogPostById(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(BlogPostSchema);
+  const repo = ds.getRepository<BlogPost>("BlogPost");
   const post = await repo.findOne({ where: { id } });
   return post ? toPlain(post) : null;
 }
@@ -103,7 +101,7 @@ export async function saveBlogPost(data: {
 }) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(BlogPostSchema);
+  const repo = ds.getRepository<BlogPost>("BlogPost");
 
   let post: BlogPost;
   if (data.id) {
@@ -137,7 +135,7 @@ export async function saveBlogPost(data: {
 export async function deleteBlogPost(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(BlogPostSchema);
+  const repo = ds.getRepository<BlogPost>("BlogPost");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/blog");
@@ -147,7 +145,7 @@ export async function deleteBlogPost(id: string) {
 export async function toggleBlogPostPublished(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(BlogPostSchema);
+  const repo = ds.getRepository<BlogPost>("BlogPost");
   const post = await repo.findOne({ where: { id } });
   if (!post) throw new Error("Blog post not found");
 
@@ -166,7 +164,7 @@ export async function getFaqItems(search?: string): Promise<FaqItem[]> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(FaqItemSchema);
+    const repo = ds.getRepository<FaqItem>("FaqItem");
 
     const whereClause = search
       ? [{ question: ILike(`%${search}%`) }, { answer: ILike(`%${search}%`) }]
@@ -204,7 +202,7 @@ export async function saveFaqItem(data: {
 }) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(FaqItemSchema);
+  const repo = ds.getRepository<FaqItem>("FaqItem");
 
   let faq: FaqItem;
   if (data.id) {
@@ -233,7 +231,7 @@ export async function saveFaqItem(data: {
 export async function deleteFaqItem(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(FaqItemSchema);
+  const repo = ds.getRepository<FaqItem>("FaqItem");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/faqs");
@@ -243,7 +241,7 @@ export async function deleteFaqItem(id: string) {
 export async function toggleFaqPublished(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(FaqItemSchema);
+  const repo = ds.getRepository<FaqItem>("FaqItem");
   const item = await repo.findOne({ where: { id } });
   if (!item) throw new Error("FAQ item not found");
 
@@ -262,7 +260,8 @@ export async function getMilestones(): Promise<ConstructionMilestone[]> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(ConstructionMilestoneSchema);
+    const repo =
+      ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
     const items = await repo.find({
       order: { phaseNumber: "ASC" },
     });
@@ -316,7 +315,8 @@ export async function saveMilestone(data: {
 }) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(ConstructionMilestoneSchema);
+  const repo =
+    ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
 
   let milestone: ConstructionMilestone;
   if (data.id) {
@@ -336,7 +336,8 @@ export async function saveMilestone(data: {
 export async function deleteMilestone(id: string) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(ConstructionMilestoneSchema);
+  const repo =
+    ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
   await repo.delete({ id });
   revalidatePath("/");
   revalidatePath("/admin/timeline");
@@ -351,7 +352,7 @@ export async function getSiteConfigs(): Promise<Record<string, unknown>> {
   await requireAuth();
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(SiteConfigSchema);
+    const repo = ds.getRepository<SiteConfig>("SiteConfig");
     const configs = await repo.find();
 
     const result: Record<string, unknown> = {};
@@ -378,7 +379,7 @@ export async function getSiteConfigs(): Promise<Record<string, unknown>> {
 export async function saveSiteConfig(key: string, value: unknown) {
   await requireAuth();
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(SiteConfigSchema);
+  const repo = ds.getRepository<SiteConfig>("SiteConfig");
 
   const stringVal =
     typeof value === "string" ? value : JSON.stringify(value) ?? "";
@@ -412,7 +413,7 @@ export async function saveMultipleSiteConfigs(
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(SiteConfigSchema);
+  const repo = ds.getRepository<SiteConfig>("SiteConfig");
 
   for (const [key, val] of Object.entries(configs)) {
     const configValue = key === "facilities" ? facilities : val;
@@ -437,21 +438,23 @@ export async function saveMultipleSiteConfigs(
 
 export async function getOtherProjects(): Promise<OtherProject[]> {
   await requireAuth();
-  try {
-    const config = await (await getDatabaseConnection())
-      .getRepository(SiteConfigSchema)
-      .findOne({ where: { key: "other_projects" } });
-    if (!config) {
-      return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
-    }
+  const config = await (await getDatabaseConnection())
+    .getRepository<SiteConfig>("SiteConfig")
+    .findOne({ where: { key: "other_projects" } });
+  if (!config) return [];
 
-    const projects = normalizeOtherProjects(JSON.parse(config.value));
-    if (projects) return toPlain(projects);
-    console.warn("Could not parse configured other projects; using defaults.");
-  } catch (err) {
-    console.warn("Could not fetch other projects for admin; using defaults:", err);
+  let value: unknown;
+  try {
+    value = JSON.parse(config.value);
+  } catch (error) {
+    throw new Error("Stored other projects are not valid JSON.", { cause: error });
   }
-  return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+
+  const projects = normalizeOtherProjects(value);
+  if (!projects) {
+    throw new Error("Stored other projects have an invalid format.");
+  }
+  return toPlain(projects);
 }
 
 export async function saveOtherProjects(value: unknown) {
@@ -464,7 +467,7 @@ export async function saveOtherProjects(value: unknown) {
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(SiteConfigSchema);
+  const repo = ds.getRepository<SiteConfig>("SiteConfig");
   let config = await repo.findOne({ where: { key: "other_projects" } });
   const serializedProjects = JSON.stringify(projects);
   if (config) {
@@ -481,22 +484,23 @@ export async function saveOtherProjects(value: unknown) {
 
 export async function getCareerOpenings(): Promise<CareerOpening[]> {
   await requireAuth();
-  try {
-    const config = await (await getDatabaseConnection())
-      .getRepository(SiteConfigSchema)
-      .findOne({ where: { key: "career_openings" } });
-    if (!config) {
-      return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
-    }
+  const config = await (await getDatabaseConnection())
+    .getRepository<SiteConfig>("SiteConfig")
+    .findOne({ where: { key: "career_openings" } });
+  if (!config) return [];
 
-    const openings = normalizeCareerOpenings(JSON.parse(config.value));
-    if (openings) return toPlain(openings);
-    console.warn("Could not parse configured career openings; using defaults.");
-  } catch (err) {
-    console.warn("Could not fetch career openings for admin; using defaults:", err);
+  let value: unknown;
+  try {
+    value = JSON.parse(config.value);
+  } catch (error) {
+    throw new Error("Stored career openings are not valid JSON.", { cause: error });
   }
 
-  return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
+  const openings = normalizeCareerOpenings(value);
+  if (!openings) {
+    throw new Error("Stored career openings have an invalid format.");
+  }
+  return toPlain(openings);
 }
 
 export async function saveCareerOpenings(value: unknown) {
@@ -509,7 +513,7 @@ export async function saveCareerOpenings(value: unknown) {
   }
 
   const ds = await getDatabaseConnection();
-  const repo = ds.getRepository(SiteConfigSchema);
+  const repo = ds.getRepository<SiteConfig>("SiteConfig");
   let config = await repo.findOne({ where: { key: "career_openings" } });
   const serializedOpenings = JSON.stringify(openings);
   if (config) {

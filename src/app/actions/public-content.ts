@@ -2,11 +2,11 @@
 
 import "reflect-metadata";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { BlogPost, BlogPostSchema } from "@/lib/db/entities/BlogPost";
-import { FaqItem, FaqItemSchema } from "@/lib/db/entities/FaqItem";
-import { ConstructionMilestone, ConstructionMilestoneSchema } from "@/lib/db/entities/ConstructionMilestone";
-import { PropertyUnit, PropertyUnitSchema } from "@/lib/db/entities/PropertyUnit";
-import { SiteConfig, SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
+import { BlogPost } from "@/lib/db/entities/BlogPost";
+import { FaqItem } from "@/lib/db/entities/FaqItem";
+import { ConstructionMilestone } from "@/lib/db/entities/ConstructionMilestone";
+import { PropertyUnit } from "@/lib/db/entities/PropertyUnit";
+import { SiteConfig } from "@/lib/db/entities/SiteConfig";
 import { BLOG_POSTS } from "@/constants/blog";
 import {
   DEFAULT_FACILITIES,
@@ -14,12 +14,10 @@ import {
   normalizeFacilities,
 } from "@/constants/facilities";
 import {
-  DEFAULT_OTHER_PROJECTS,
   normalizeOtherProjects,
   type OtherProject,
 } from "@/constants/other-projects";
 import {
-  DEFAULT_CAREER_OPENINGS,
   normalizeCareerOpenings,
   type CareerOpening,
 } from "@/constants/careers";
@@ -39,7 +37,7 @@ function toPlain<T>(data: T): T {
 export async function getPublicBlogPosts() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(BlogPostSchema);
+    const repo = ds.getRepository<BlogPost>("BlogPost");
     const posts = await repo.find({
       where: { published: true },
       order: { createdAt: "DESC" },
@@ -57,7 +55,7 @@ export async function getPublicBlogPosts() {
 export async function getPublicFaqs() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(FaqItemSchema);
+    const repo = ds.getRepository<FaqItem>("FaqItem");
     const items = await repo.find({
       where: { published: true },
       order: { sortOrder: "ASC", createdAt: "ASC" },
@@ -75,7 +73,8 @@ export async function getPublicFaqs() {
 export async function getPublicMilestones() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(ConstructionMilestoneSchema);
+    const repo =
+      ds.getRepository<ConstructionMilestone>("ConstructionMilestone");
     const milestones = await repo.find({
       order: { phaseNumber: "ASC" },
     });
@@ -98,7 +97,7 @@ export async function getPublicMilestones() {
 export async function getPublicUnits() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(PropertyUnitSchema);
+    const repo = ds.getRepository<PropertyUnit>("PropertyUnit");
     const units = await repo.find({
       order: { id: "ASC" },
     });
@@ -115,7 +114,7 @@ export async function getPublicUnits() {
 export async function getPublicSiteConfig() {
   try {
     const ds = await getDatabaseConnection();
-    const repo = ds.getRepository(SiteConfigSchema);
+    const repo = ds.getRepository<SiteConfig>("SiteConfig");
     const configs = await repo.find();
     const result: Record<string, any> = {};
     for (const item of configs) {
@@ -136,7 +135,7 @@ export async function getPublicFacilities(): Promise<Facility[]> {
   try {
     const ds = await getDatabaseConnection();
     const config = await ds
-      .getRepository(SiteConfigSchema)
+      .getRepository<SiteConfig>("SiteConfig")
       .findOne({ where: { key: "facilities" } });
 
     if (!config) {
@@ -159,43 +158,41 @@ export async function getPublicFacilities(): Promise<Facility[]> {
 }
 
 export async function getPublicOtherProjects(): Promise<OtherProject[]> {
+  const config = await (await getDatabaseConnection())
+    .getRepository<SiteConfig>("SiteConfig")
+    .findOne({ where: { key: "other_projects" } });
+  if (!config) return [];
+
+  let value: unknown;
   try {
-    const config = await (await getDatabaseConnection())
-      .getRepository(SiteConfigSchema)
-      .findOne({ where: { key: "other_projects" } });
-
-    if (!config) {
-      return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
-    }
-
-    const projects = normalizeOtherProjects(JSON.parse(config.value));
-    if (projects) return toPlain(projects);
-
-    console.warn("Could not parse configured other projects; using defaults.");
-  } catch (err) {
-    console.warn("Could not fetch other projects; using defaults:", err);
+    value = JSON.parse(config.value);
+  } catch (error) {
+    throw new Error("Stored other projects are not valid JSON.", { cause: error });
   }
 
-  return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+  const projects = normalizeOtherProjects(value);
+  if (!projects) {
+    throw new Error("Stored other projects have an invalid format.");
+  }
+  return toPlain(projects);
 }
 
 export async function getPublicCareerOpenings(): Promise<CareerOpening[]> {
+  const config = await (await getDatabaseConnection())
+    .getRepository<SiteConfig>("SiteConfig")
+    .findOne({ where: { key: "career_openings" } });
+  if (!config) return [];
+
+  let value: unknown;
   try {
-    const config = await (await getDatabaseConnection())
-      .getRepository(SiteConfigSchema)
-      .findOne({ where: { key: "career_openings" } });
-
-    if (!config) {
-      return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
-    }
-
-    const openings = normalizeCareerOpenings(JSON.parse(config.value));
-    if (openings) return toPlain(openings);
-
-    console.warn("Could not parse configured career openings; using defaults.");
-  } catch (err) {
-    console.warn("Could not fetch career openings; using defaults:", err);
+    value = JSON.parse(config.value);
+  } catch (error) {
+    throw new Error("Stored career openings are not valid JSON.", { cause: error });
   }
 
-  return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
+  const openings = normalizeCareerOpenings(value);
+  if (!openings) {
+    throw new Error("Stored career openings have an invalid format.");
+  }
+  return toPlain(openings);
 }

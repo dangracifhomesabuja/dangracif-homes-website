@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDatabaseConnection } from "@/lib/db/data-source";
-import { SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
+import { SiteConfig } from "@/lib/db/entities/SiteConfig";
 import { createBrochureDownloadUrl } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const dataSource = await getDatabaseConnection();
     const config = await dataSource
-      .getRepository(SiteConfigSchema)
+      .getRepository<SiteConfig>("SiteConfig")
       .findOne({ where: { key: "brochure_url" } });
 
     if (!config?.value) {
