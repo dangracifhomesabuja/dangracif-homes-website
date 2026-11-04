@@ -41,4 +41,8 @@ export interface HomeModel {
   description: string;
   price: string;
   imageSrc: string;
+  galleryImages: {
+    src: string;
+    caption: string;
+  }[];
 }

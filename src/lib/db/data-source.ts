@@ -10,6 +10,9 @@ import { SiteConfig, SiteConfigSchema } from "./entities/SiteConfig";
 import { MediaAsset, MediaAssetSchema } from "./entities/MediaAsset";
 import { InitialSchema1710000000000 } from "./migrations/1710000000000-InitialSchema";
 import { ContentSchema1729000000000 } from "./migrations/1729000000000-ContentSchema";
+import { SeedProjectsAndCareers1730000000000 } from "./migrations/1730000000000-SeedProjectsAndCareers";
+import { UpdateOtherProjectContent1731000000000 } from "./migrations/1731000000000-UpdateOtherProjectContent";
+import { UpdatePropertyUnitPrices1732000000000 } from "./migrations/1732000000000-UpdatePropertyUnitPrices";
 
 // Load environment variables for CLI usage
 if (typeof process !== "undefined" && process.env) {
@@ -62,6 +65,7 @@ export const AppDataSource: DataSource =
   new DataSource({
     type: "postgres",
     url: connectionUrl,
+    schema: "public",
     ssl: useSsl ? { rejectUnauthorized: false } : false,
     synchronize: false, // strictly use migrations
     logging: process.env.NODE_ENV === "development",
@@ -75,7 +79,13 @@ export const AppDataSource: DataSource =
       SiteConfigSchema,
       MediaAssetSchema,
     ],
-    migrations: [InitialSchema1710000000000, ContentSchema1729000000000],
+    migrations: [
+      InitialSchema1710000000000,
+      ContentSchema1729000000000,
+      SeedProjectsAndCareers1730000000000,
+      UpdateOtherProjectContent1731000000000,
+      UpdatePropertyUnitPrices1732000000000,
+    ],
     subscribers: [],
   });
 

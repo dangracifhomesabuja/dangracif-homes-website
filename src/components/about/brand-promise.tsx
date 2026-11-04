@@ -51,7 +51,7 @@ export const BrandPromise: React.FC = () => {
             {/* CTA */}
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/fideliscourts"
+                href="/fideliscourt"
                 className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-white text-[#00ABF0] text-sm font-bold hover:bg-white/90 transition-all shadow-lg shadow-black/10 cursor-pointer"
               >
                 View Our Projects

@@ -14,13 +14,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/fidelis-court",
-        destination: "/fideliscourts",
+        source: "/fideliscourts",
+        destination: "/fideliscourt",
         permanent: true,
       },
       {
-        source: "/fideliscourt",
-        destination: "/fideliscourts",
+        source: "/fidelis-court",
+        destination: "/fideliscourt",
         permanent: true,
       },
     ];

@@ -13,6 +13,16 @@ import {
   type Facility,
   normalizeFacilities,
 } from "@/constants/facilities";
+import {
+  DEFAULT_OTHER_PROJECTS,
+  normalizeOtherProjects,
+  type OtherProject,
+} from "@/constants/other-projects";
+import {
+  DEFAULT_CAREER_OPENINGS,
+  normalizeCareerOpenings,
+  type CareerOpening,
+} from "@/constants/careers";
 
 const DEFAULT_MILESTONES = [
   { phase: "Phase 1", date: "Apr 2026", title: "Groundbreaking & site mobilisation" },
@@ -146,4 +156,46 @@ export async function getPublicFacilities(): Promise<Facility[]> {
   }
 
   return DEFAULT_FACILITIES.map((facility) => ({ ...facility }));
+}
+
+export async function getPublicOtherProjects(): Promise<OtherProject[]> {
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository(SiteConfigSchema)
+      .findOne({ where: { key: "other_projects" } });
+
+    if (!config) {
+      return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+    }
+
+    const projects = normalizeOtherProjects(JSON.parse(config.value));
+    if (projects) return toPlain(projects);
+
+    console.warn("Could not parse configured other projects; using defaults.");
+  } catch (err) {
+    console.warn("Could not fetch other projects; using defaults:", err);
+  }
+
+  return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+}
+
+export async function getPublicCareerOpenings(): Promise<CareerOpening[]> {
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository(SiteConfigSchema)
+      .findOne({ where: { key: "career_openings" } });
+
+    if (!config) {
+      return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
+    }
+
+    const openings = normalizeCareerOpenings(JSON.parse(config.value));
+    if (openings) return toPlain(openings);
+
+    console.warn("Could not parse configured career openings; using defaults.");
+  } catch (err) {
+    console.warn("Could not fetch career openings; using defaults:", err);
+  }
+
+  return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
 }

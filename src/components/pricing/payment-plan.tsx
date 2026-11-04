@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { UnitPlan, formatNaira } from "@/constants/pricing";
 import { cn } from "@/lib/utils";
 
@@ -102,18 +103,18 @@ export const PaymentPlan: React.FC<PaymentPlanProps> = ({ plan }) => {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
-              <button
-                type="button"
+              <Link
+                href="/contact?tab=reserve"
                 className="inline-flex items-center justify-center px-7 py-4 rounded-full bg-[#0754C6] text-white text-md font-semibold hover:bg-[#0648AB] transition-colors shadow-sm cursor-pointer"
               >
                 Reserve this unit
-              </button>
-              <button
-                type="button"
+              </Link>
+              <Link
+                href="/contact?tab=buy"
                 className="inline-flex items-center justify-center px-7 py-4 rounded-full border border-[#00ABF0] bg-white text-[#00ABF0] text-md font-semibold hover:bg-[#00ABF0]/5 transition-colors cursor-pointer"
               >
                 Buy now
-              </button>
+              </Link>
             </div>
           </div>
         </div>

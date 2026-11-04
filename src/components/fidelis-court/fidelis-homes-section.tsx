@@ -28,7 +28,7 @@ const FIDELIS_UNITS: UnitModel[] = [
     disclaimer:
       "Actual site photos — shared project concepts, not unit-specific photographs. Apartment interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 32,
-    price: "₦53M",
+    price: "₦55.5M",
     mainImage: "/fidelis-court/Bright Renovation Room with Window Views.png",
     galleryImages: [
       {
@@ -52,7 +52,7 @@ const FIDELIS_UNITS: UnitModel[] = [
     disclaimer:
       "Actual site photos — shared project concepts, not unit-specific photographs. Apartment interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 48,
-    price: "₦80M",
+    price: "₦82.5M",
     mainImage: "/fidelis-court/Sunlit Unfinished Room Renovation.png",
     galleryImages: [
       {
@@ -76,7 +76,7 @@ const FIDELIS_UNITS: UnitModel[] = [
     disclaimer:
       "Actual site photos — shared project concepts, not unit-specific photographs. Terrace interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 8,
-    price: "₦125M",
+    price: "₦127.5M",
     mainImage: "/fidelis-court/Vibrant Mid-Rise Construction Site.png",
     galleryImages: [
       {

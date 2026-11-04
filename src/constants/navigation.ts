@@ -1,7 +1,7 @@
 import { NavItem, UnitOption } from "@/types";
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Fidelis Court", href: "/fideliscourts" },
+  { label: "Fidelis Court", href: "/fideliscourt" },
   { label: "Pricing & Plans", href: "/pricing" },
   { label: "About Us", href: "/about" },
   { label: "Blog", href: "/blog" },
@@ -10,19 +10,19 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const UNIT_OPTIONS: UnitOption[] = [
   {
-    label: "1-Bedroom Apartment — ₦53,000,000",
+    label: "1-Bedroom Apartment — ₦55,500,000",
     value: "1-bed",
-    priceFormatted: "₦53,000,000",
+    priceFormatted: "₦55,500,000",
   },
   {
-    label: "2-Bedroom Apartment — ₦80,000,000",
+    label: "2-Bedroom Apartment — ₦82,500,000",
     value: "2-bed",
-    priceFormatted: "₦80,000,000",
+    priceFormatted: "₦82,500,000",
   },
   {
-    label: "4-Bedroom Terrace Duplex — ₦145,000,000",
+    label: "4-Bedroom Terrace Duplex — ₦127,500,000",
     value: "4-bed-terrace",
-    priceFormatted: "₦145,000,000",
+    priceFormatted: "₦127,500,000",
   },
 ];
 

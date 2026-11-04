@@ -10,6 +10,16 @@ import { SiteConfigSchema } from "@/lib/db/entities/SiteConfig";
 import { getAdminSession } from "@/lib/auth";
 import { ILike } from "typeorm";
 import { normalizeFacilities } from "@/constants/facilities";
+import {
+  DEFAULT_OTHER_PROJECTS,
+  normalizeOtherProjects,
+  type OtherProject,
+} from "@/constants/other-projects";
+import {
+  DEFAULT_CAREER_OPENINGS,
+  normalizeCareerOpenings,
+  type CareerOpening,
+} from "@/constants/careers";
 
 function toPlain<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
@@ -420,7 +430,99 @@ export async function saveMultipleSiteConfigs(
   }
 
   revalidatePath("/");
-  revalidatePath("/fideliscourts");
+  revalidatePath("/fideliscourt");
   revalidatePath("/admin/site-config");
+  return { success: true };
+}
+
+export async function getOtherProjects(): Promise<OtherProject[]> {
+  await requireAuth();
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository(SiteConfigSchema)
+      .findOne({ where: { key: "other_projects" } });
+    if (!config) {
+      return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+    }
+
+    const projects = normalizeOtherProjects(JSON.parse(config.value));
+    if (projects) return toPlain(projects);
+    console.warn("Could not parse configured other projects; using defaults.");
+  } catch (err) {
+    console.warn("Could not fetch other projects for admin; using defaults:", err);
+  }
+  return DEFAULT_OTHER_PROJECTS.map((project) => ({ ...project }));
+}
+
+export async function saveOtherProjects(value: unknown) {
+  await requireAuth();
+  const projects = normalizeOtherProjects(value);
+  if (!projects) {
+    throw new Error(
+      "Each project must have a unique ID, title, description, location, and status."
+    );
+  }
+
+  const ds = await getDatabaseConnection();
+  const repo = ds.getRepository(SiteConfigSchema);
+  let config = await repo.findOne({ where: { key: "other_projects" } });
+  const serializedProjects = JSON.stringify(projects);
+  if (config) {
+    config.value = serializedProjects;
+  } else {
+    config = repo.create({ key: "other_projects", value: serializedProjects });
+  }
+  await repo.save(config);
+
+  revalidatePath("/other-projects");
+  revalidatePath("/admin/projects");
+  return { success: true };
+}
+
+export async function getCareerOpenings(): Promise<CareerOpening[]> {
+  await requireAuth();
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository(SiteConfigSchema)
+      .findOne({ where: { key: "career_openings" } });
+    if (!config) {
+      return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
+    }
+
+    const openings = normalizeCareerOpenings(JSON.parse(config.value));
+    if (openings) return toPlain(openings);
+    console.warn("Could not parse configured career openings; using defaults.");
+  } catch (err) {
+    console.warn("Could not fetch career openings for admin; using defaults:", err);
+  }
+
+  return DEFAULT_CAREER_OPENINGS.map((opening) => ({ ...opening }));
+}
+
+export async function saveCareerOpenings(value: unknown) {
+  await requireAuth();
+  const openings = normalizeCareerOpenings(value);
+  if (!openings) {
+    throw new Error(
+      "Each career opening must have a unique ID, title, and description."
+    );
+  }
+
+  const ds = await getDatabaseConnection();
+  const repo = ds.getRepository(SiteConfigSchema);
+  let config = await repo.findOne({ where: { key: "career_openings" } });
+  const serializedOpenings = JSON.stringify(openings);
+  if (config) {
+    config.value = serializedOpenings;
+  } else {
+    config = repo.create({
+      key: "career_openings",
+      value: serializedOpenings,
+    });
+  }
+  await repo.save(config);
+
+  revalidatePath("/careers");
+  revalidatePath("/admin/careers");
   return { success: true };
 }

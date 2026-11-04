@@ -61,7 +61,7 @@ export const ContactSection: React.FC = () => {
 
   const getActiveUnitLabel = () => {
     const found = UNIT_OPTIONS.find((u) => u.value === unitType);
-    return found ? found.label : "2-Bedroom Apartment — ₦80,000,000";
+    return found ? found.label : "2-Bedroom Apartment — ₦82,500,000";
   };
 
   const getSubmissionDetails = () => {

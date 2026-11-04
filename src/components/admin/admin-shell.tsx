@@ -20,6 +20,7 @@ import {
   HelpCircle,
   CalendarDays,
   SlidersHorizontal,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { adminLogoutAction } from "@/app/actions/admin-auth";
 import { AdminSessionUser } from "@/lib/auth";
@@ -106,6 +107,18 @@ export function AdminShell({ user, children }: AdminShellProps) {
           icon: SlidersHorizontal,
           exact: false,
         },
+        {
+          href: "/admin/projects",
+          label: "Other Projects",
+          icon: BriefcaseBusiness,
+          exact: false,
+        },
+        {
+          href: "/admin/careers",
+          label: "Career Listings",
+          icon: BriefcaseBusiness,
+          exact: false,
+        },
       ],
     },
     {
@@ -129,6 +142,8 @@ export function AdminShell({ user, children }: AdminShellProps) {
     if (pathname.startsWith("/admin/faqs")) return "Frequently Asked Questions";
     if (pathname.startsWith("/admin/timeline")) return "Construction Timeline";
     if (pathname.startsWith("/admin/site-config")) return "Site Configuration";
+    if (pathname.startsWith("/admin/projects")) return "Other Projects";
+    if (pathname.startsWith("/admin/careers")) return "Career Listings";
     if (pathname.startsWith("/admin/settings")) return "Portal Settings";
     return "Admin Portal";
   };
@@ -146,6 +161,10 @@ export function AdminShell({ user, children }: AdminShellProps) {
       return "Update construction milestones and development phases for Fidelis Court.";
     if (pathname.startsWith("/admin/site-config"))
       return "Manage website details, section images, and Fidelis Court facilities.";
+    if (pathname.startsWith("/admin/projects"))
+      return "Manage the developments displayed on the public Other Projects page.";
+    if (pathname.startsWith("/admin/careers"))
+      return "Manage the job openings displayed on the public Careers page.";
     if (pathname.startsWith("/admin/settings"))
       return "Manage executive credentials, security configuration, and preferences.";
     return "Real-time pipeline overview for Fidelis Court and customer inquiries.";

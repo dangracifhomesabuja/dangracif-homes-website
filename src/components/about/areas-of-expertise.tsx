@@ -56,19 +56,7 @@ export const AreasOfExpertise: React.FC = () => {
           </div>
         </div>
 
-        {/* Commercial Development · Dangracif Mall */}
-        <div className="mt-6 sm:mt-8 max-w-4xl space-y-3">
-          <h3 className="text-lg sm:text-xl font-bold text-[#0a192f]">
-            Commercial development · Dangracif Mall
-          </h3>
-          <p className="text-slate-600 text-sm sm:text-[15px] leading-relaxed">
-            Our company profile also includes Dangracif Mall in Kubwa, Abuja: a
-            commercial development envisioned for retail, services and business
-            activities, with a focus on functionality, accessibility and
-            commercial value.
-          </p>
-        </div>
-        <p className="text-slate-600 text-sm sm:text-[15px] leading-relaxed pt-3">
+        <p className="text-slate-600 text-sm sm:text-[15px] leading-relaxed mt-6 sm:mt-8">
           Our development work is supported by outsourced built-environment
           professionals and partners.
         </p>

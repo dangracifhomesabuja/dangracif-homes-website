@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Subtitle */}
           <p className="text-[14px] sm:text-base lg:text-[17px] font-medium text-slate-200 max-w-xl leading-relaxed">
-            1 & 2-bedroom apartments and 4-bedroom terraces from ₦53M, with a
+            1 & 2-bedroom apartments and 4-bedroom terraces from ₦55.5M, with a
             flexible 12-month payment plan.
           </p>
 

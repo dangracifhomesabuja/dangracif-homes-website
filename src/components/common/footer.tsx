@@ -93,18 +93,32 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
                   <ExternalLink className="w-3.5 h-3.5 text-[#f0f6fc] group-hover:text-white transition-colors shrink-0" />
                   <span>Masterpiece Capital</span>
                 </a>
+                <div className="mt-2 space-y-2">
+                  <a
+                    href="tel:+2348133187860"
+                    className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                  >
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span>+234 813 318 7860</span>
+                  </a>
+                  <a
+                    href="tel:+2348138911937"
+                    className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                  >
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span>+234 813 891 1937</span>
+                  </a>
+                  <a
+                    href="tel:+2347071322002"
+                    className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                  >
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span>+234 707 132 2002</span>
+                  </a>
+                </div>
               </div>
 
-              {/* Phone 1 */}
-              <a
-                href="tel:+2348133187860"
-                className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
-              >
-                <Phone className="h-4 w-4 text-[#f0f6fc] shrink-0" />
-                <span>+234 813 318 7860 (Sales Office)</span>
-              </a>
-
-              {/* Phone 2 */}
+              {/* Phone */}
               <a
                 href="tel:+2347066249077"
                 className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
@@ -141,7 +155,7 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
             <ul className="space-y-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc]">
               <li>
                 <Link
-                  href="/fideliscourts"
+                  href="/fideliscourt"
                   className="hover:text-white transition-colors block"
                 >
                   Fidelis Court
@@ -181,6 +195,14 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
               </li>
               <li>
                 <Link
+                  href="/careers"
+                  className="hover:text-white transition-colors block"
+                >
+                  Careers
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/contact?tab=buy"
                   className="hover:text-white transition-colors block"
                 >
@@ -216,6 +238,29 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
                 <ExternalLink className="w-3.5 h-3.5 text-[#f0f6fc] group-hover:text-white transition-colors shrink-0" />
                 <span>Masterpiece Capital</span>
               </a>
+              <div className="mt-2 space-y-2">
+                <a
+                  href="tel:+2348133187860"
+                  className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  <span>+234 813 318 7860</span>
+                </a>
+                <a
+                  href="tel:+2348138911937"
+                  className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  <span>+234 813 891 1937</span>
+                </a>
+                <a
+                  href="tel:+2347071322002"
+                  className="flex items-center gap-2.5 text-[14px] font-normal leading-[20px] text-[#f0f6fc] hover:text-white transition-colors"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  <span>+234 707 132 2002</span>
+                </a>
+              </div>
             </div>
           </div>
 

@@ -27,8 +27,8 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     unitsCount: 32,
     availableUnits: 24,
     description: "Compact, efficient city living with premium finishes.",
-    price: "₦53,000,000",
-    numericPrice: 53000000,
+    price: "₦55,500,000",
+    numericPrice: 55500000,
     imageSrc: "/images/apartment-1bed.jpg",
     status: "available",
     createdAt: new Date(),
@@ -40,8 +40,8 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     unitsCount: 48,
     availableUnits: 31,
     description: "Ideal for young families & professionals. Spacious living.",
-    price: "₦80,000,000",
-    numericPrice: 80000000,
+    price: "₦82,500,000",
+    numericPrice: 82500000,
     imageSrc: "/images/apartment-2bed.jpg",
     status: "available",
     createdAt: new Date(),
@@ -53,8 +53,8 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     unitsCount: 8,
     availableUnits: 4,
     description: "Shell option — finish to your bespoke taste & architectural flair.",
-    price: "₦125,000,000",
-    numericPrice: 125000000,
+    price: "₦127,500,000",
+    numericPrice: 127500000,
     imageSrc: "/images/terrace-duplex.jpg",
     status: "limited",
     createdAt: new Date(),
@@ -105,7 +105,7 @@ export async function getDashboardStats() {
     let estimatedPipeline = 0;
     highIntentLeads.forEach((lead) => {
       if (lead.status !== "archived") {
-        const unitCost = lead.unitType ? unitPriceMap[lead.unitType] || 80000000 : 80000000;
+        const unitCost = lead.unitType ? unitPriceMap[lead.unitType] || 82500000 : 82500000;
         estimatedPipeline += unitCost * (lead.numberOfUnits || 1);
       }
     });
@@ -357,7 +357,7 @@ export async function updatePropertyUnitAction(
 
   await unitRepo.update(id, data);
   revalidatePath("/admin");
-  revalidatePath("/fideliscourts");
+  revalidatePath("/fideliscourt");
   revalidatePath("/fidelis-court");
   revalidatePath("/pricing");
   return { success: true };

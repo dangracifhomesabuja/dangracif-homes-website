@@ -29,6 +29,7 @@ export const InspectionForm: React.FC<InspectionFormProps> = ({
   const isFidelis =
     variant === "primary" ||
     buttonVariant === "primary" ||
+    pathname === "/fideliscourt" ||
     pathname === "/fideliscourts" ||
     pathname === "/fidelis-court";
   const inputVariant = "default";

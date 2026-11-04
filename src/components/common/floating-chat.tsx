@@ -47,18 +47,18 @@ function getBotReply(userQuery: string): {
   ) {
     if (q.includes("1-bed") || q.includes("1 bed") || q.includes("one bed")) {
       return {
-        text: "The 1-Bedroom Apartment at Fidelis Court is priced at ₦53,000,000 (32 units available). With our flexible payment plan, you can secure it with a 40% initial deposit (₦21,200,000).",
+        text: "The 1-Bedroom Apartment at Fidelis Court is priced at ₦55,500,000 (32 units available). With our flexible payment plan, you can secure it with a 40% initial deposit (₦22,200,000).",
         link: { text: "View pricing & breakdown", href: "/pricing" },
       };
     }
     if (q.includes("4-bed") || q.includes("4 bed") || q.includes("terrace")) {
       return {
-        text: "The 4-Bedroom Terrace Duplex (Shell) is ₦125,000,000 (8 units available). Initial 40% deposit is ₦50,000,000 with the remaining spread across 12 months.",
+        text: "The 4-Bedroom Terrace Duplex (Shell) is ₦127,500,000 (8 units available). Initial 40% deposit is ₦51,000,000 with the remaining spread across 12 months.",
         link: { text: "View pricing & breakdown", href: "/pricing" },
       };
     }
     return {
-      text: "Fidelis Court pricing options:\n• 1-Bedroom Apartment: ₦53,000,000 (32 units)\n• 2-Bedroom Apartment: ₦80,000,000 (48 units)\n• 4-Bedroom Terrace (Shell): ₦125,000,000 (8 units)\n\nAll units can be secured with a 40% initial deposit.",
+      text: "Fidelis Court pricing options:\n• 1-Bedroom Apartment: ₦55,500,000 (32 units)\n• 2-Bedroom Apartment: ₦82,500,000 (48 units)\n• 4-Bedroom Terrace (Shell): ₦127,500,000 (8 units)\n\nAll units can be secured with a 40% initial deposit.",
       link: { text: "Explore full pricing & plans", href: "/pricing" },
     };
   }

@@ -45,7 +45,7 @@ export const AboutHero: React.FC = () => {
 
             <div className="pt-2">
               <Link
-                href="/fideliscourts"
+                href="/fideliscourt"
                 className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 rounded-xl bg-[#0754C6] hover:bg-[#0648AB] text-white text-sm font-semibold transition-all shadow-md hover:shadow-lg shadow-[#0754C6]/25 cursor-pointer"
               >
                 <span>Our current project</span>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "./logo";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ export const Header: React.FC<HeaderProps> = ({ onBookInspectionClick }) => {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [mobileAboutOpen, setMobileAboutOpen] = React.useState(
+    pathname?.startsWith("/other-projects") ?? false
+  );
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -77,6 +80,42 @@ export const Header: React.FC<HeaderProps> = ({ onBookInspectionClick }) => {
               const isActive =
                 item.href === pathname ||
                 (item.href.startsWith("/") && pathname?.startsWith(item.href));
+              if (item.href === "/about") {
+                return (
+                  <div key={item.label} className="group relative py-3">
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "text-sm font-medium transition-colors hover:text-[#00ABF0]",
+                        isActive || pathname?.startsWith("/other-projects")
+                          ? "text-[#00ABF0] font-semibold"
+                          : "text-zinc-700"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {item.label}
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="h-4 w-4 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
+                        />
+                      </span>
+                    </Link>
+                    <div className="invisible absolute left-0 top-full z-50 min-w-44 translate-y-1 rounded-xl border border-zinc-200 bg-white p-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                      <Link
+                        href="/other-projects"
+                        className={cn(
+                          "block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-slate-50 hover:text-[#00ABF0]",
+                          pathname?.startsWith("/other-projects")
+                            ? "font-semibold text-[#00ABF0]"
+                            : "text-zinc-700"
+                        )}
+                      >
+                        Other Projects
+                      </Link>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={item.label}
@@ -135,6 +174,58 @@ export const Header: React.FC<HeaderProps> = ({ onBookInspectionClick }) => {
                   const isActive =
                     item.href === pathname ||
                     (item.href !== "/" && pathname?.startsWith(item.href));
+                  if (item.href === "/about") {
+                    return (
+                      <div key={item.label}>
+                        <div className="flex items-center justify-between">
+                          <Link
+                            href={item.href}
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "text-[17px] font-medium tracking-tight py-1",
+                              isActive || pathname?.startsWith("/other-projects")
+                                ? "text-[#00ABF0]"
+                                : "text-zinc-900 hover:text-[#00ABF0]"
+                            )}
+                          >
+                            {item.label}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setMobileAboutOpen((open) => !open)}
+                            className="p-2 text-zinc-700"
+                            aria-label={
+                              mobileAboutOpen
+                                ? "Hide Other Projects link"
+                                : "Show Other Projects link"
+                            }
+                            aria-expanded={mobileAboutOpen}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 transition-transform",
+                                mobileAboutOpen && "rotate-180"
+                              )}
+                            />
+                          </button>
+                        </div>
+                        {mobileAboutOpen && (
+                          <Link
+                            href="/other-projects"
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "block py-2 pl-4 text-sm font-medium",
+                              pathname?.startsWith("/other-projects")
+                                ? "text-[#00ABF0]"
+                                : "text-zinc-600 hover:text-[#00ABF0]"
+                            )}
+                          >
+                            Other Projects
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  }
                   return (
                     <Link
                       key={item.label}
