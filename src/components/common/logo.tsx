@@ -15,12 +15,12 @@ export const Logo: React.FC<LogoProps> = ({ className }) => {
       className={cn("inline-flex items-center group select-none shrink-0 py-1", className)}
       aria-label="Dangracif Homes"
     >
-      <div className="relative h-12 sm:h-13.5 lg:h-[60px] w-[120px] sm:w-[140px] lg:w-[155px] shrink-0">
+      <div className="relative h-12 sm:h-13.5 lg:h-[76px] w-[120px] sm:w-[140px] lg:w-[180px] shrink-0">
         <Image
           src="/images/logo.png"
           alt="Dangracif Homes"
           fill
-          sizes="(max-width: 640px) 120px, 160px"
+          sizes="(max-width: 640px) 120px, 180px"
           className="object-contain object-left transition-transform duration-200 group-hover:scale-105"
           priority
         />

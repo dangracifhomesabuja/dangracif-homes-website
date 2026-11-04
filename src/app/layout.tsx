@@ -15,12 +15,9 @@ export const metadata: Metadata = {
   description:
     "Secure, serviced living in the heart of Kubwa. 1 & 2-bedroom apartments and 4-bedroom terraces from ₦55.5M.",
   icons: {
-    icon: [
-      { url: "/images/logo.png" },
-      { url: "/icon.png" },
-    ],
-    shortcut: "/images/logo.png",
-    apple: "/images/logo.png",
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
   },
 };
 
