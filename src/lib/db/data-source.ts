@@ -54,13 +54,14 @@ const useSsl =
   connectionUrl.includes("supabase.co") ||
   connectionUrl.includes("neon.tech");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const globalForDataSource = globalThis as unknown as {
   _appDataSource?: DataSource;
-  _appDataSourceInitialization?: Promise<DataSource>;
 };
 
 export const AppDataSource: DataSource =
-  globalForDataSource._appDataSource ??
+  (isProduction ? undefined : globalForDataSource._appDataSource) ??
   new DataSource({
     type: "postgres",
     url: connectionUrl,
@@ -88,28 +89,46 @@ export const AppDataSource: DataSource =
     subscribers: [],
   });
 
-globalForDataSource._appDataSource ??= AppDataSource;
+if (!isProduction) {
+  globalForDataSource._appDataSource = AppDataSource;
+}
+
+let initializationPromise: Promise<DataSource> | undefined;
 
 export async function getDatabaseConnection(): Promise<DataSource> {
-  const dataSource = globalForDataSource._appDataSource;
-  if (!dataSource) {
-    throw new Error("The application database datasource was not configured.");
-  }
+  if (initializationPromise) return initializationPromise;
+  if (AppDataSource.isInitialized) return AppDataSource;
 
-  if (globalForDataSource._appDataSourceInitialization) {
-    return globalForDataSource._appDataSourceInitialization;
-  }
-
-  if (dataSource.isInitialized) return dataSource;
-
-  const initialization = dataSource.initialize().then(() => dataSource);
-  globalForDataSource._appDataSourceInitialization = initialization;
+  const initialization = AppDataSource.initialize().then(() => {
+    const requiredEntities = [
+      "User",
+      "PropertyUnit",
+      "LeadInquiry",
+      "BlogPost",
+      "FaqItem",
+      "ConstructionMilestone",
+      "SiteConfig",
+      "MediaAsset",
+    ];
+    const missingEntities = requiredEntities.filter(
+      (name) => !AppDataSource.hasMetadata(name)
+    );
+    if (missingEntities.length > 0) {
+      throw new Error(
+        `Database entity metadata was not registered: ${missingEntities.join(", ")}. ` +
+          `Registered entities: ${AppDataSource.entityMetadatas
+            .map(({ name }) => name)
+            .join(", ")}.`
+      );
+    }
+    return AppDataSource;
+  });
+  initializationPromise = initialization;
   try {
     return await initialization;
   } catch (error) {
-    if (globalForDataSource._appDataSourceInitialization === initialization) {
-      globalForDataSource._appDataSourceInitialization = undefined;
-    }
+    initializationPromise = undefined;
+    if (AppDataSource.isInitialized) await AppDataSource.destroy();
     throw error;
   }
 }
