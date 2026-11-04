@@ -49,15 +49,14 @@ const connectionUrl =
   process.env.DATABASE_URL ||
   "postgresql://hellosauri@localhost:5432/dangracif_homes";
 
-const isProduction = process.env.NODE_ENV === "production";
 const useSsl =
   connectionUrl.includes("sslmode=require") ||
   connectionUrl.includes("supabase.co") ||
   connectionUrl.includes("neon.tech");
 
-// Avoid duplicate connections in Next.js development hot-reloads
 const globalForDataSource = globalThis as unknown as {
   _appDataSource?: DataSource;
+  _appDataSourceInitialization?: Promise<DataSource>;
 };
 
 export const AppDataSource: DataSource =
@@ -89,15 +88,30 @@ export const AppDataSource: DataSource =
     subscribers: [],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDataSource._appDataSource = AppDataSource;
-}
+globalForDataSource._appDataSource ??= AppDataSource;
 
 export async function getDatabaseConnection(): Promise<DataSource> {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
+  const dataSource = globalForDataSource._appDataSource;
+  if (!dataSource) {
+    throw new Error("The application database datasource was not configured.");
   }
-  return AppDataSource;
+
+  if (globalForDataSource._appDataSourceInitialization) {
+    return globalForDataSource._appDataSourceInitialization;
+  }
+
+  if (dataSource.isInitialized) return dataSource;
+
+  const initialization = dataSource.initialize().then(() => dataSource);
+  globalForDataSource._appDataSourceInitialization = initialization;
+  try {
+    return await initialization;
+  } catch (error) {
+    if (globalForDataSource._appDataSourceInitialization === initialization) {
+      globalForDataSource._appDataSourceInitialization = undefined;
+    }
+    throw error;
+  }
 }
 
 // Re-export entities for convenience
