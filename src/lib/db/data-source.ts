@@ -13,6 +13,9 @@ import { ContentSchema1729000000000 } from "./migrations/1729000000000-ContentSc
 import { SeedProjectsAndCareers1730000000000 } from "./migrations/1730000000000-SeedProjectsAndCareers";
 import { UpdateOtherProjectContent1731000000000 } from "./migrations/1731000000000-UpdateOtherProjectContent";
 import { UpdatePropertyUnitPrices1732000000000 } from "./migrations/1732000000000-UpdatePropertyUnitPrices";
+import { SetPropertyUnitsAvailable1733000000000 } from "./migrations/1733000000000-SetPropertyUnitsAvailable";
+import { RemoveSeededSampleInquiries1734000000000 } from "./migrations/1734000000000-RemoveSeededSampleInquiries";
+import { AddBlogPostSortOrder1735000000000 } from "./migrations/1735000000000-AddBlogPostSortOrder";
 
 // Load environment variables for CLI usage
 if (typeof process !== "undefined" && process.env) {
@@ -85,6 +88,9 @@ export const AppDataSource: DataSource =
       SeedProjectsAndCareers1730000000000,
       UpdateOtherProjectContent1731000000000,
       UpdatePropertyUnitPrices1732000000000,
+      SetPropertyUnitsAvailable1733000000000,
+      RemoveSeededSampleInquiries1734000000000,
+      AddBlogPostSortOrder1735000000000,
     ],
     subscribers: [],
   });

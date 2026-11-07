@@ -9,6 +9,7 @@ import {
   Plus,
   Save,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveCareerOpenings } from "@/app/actions/admin-content";
@@ -35,6 +36,21 @@ export function AdminCareersClient({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<CareerDraft>(EMPTY_DRAFT);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isArrangeMode, setIsArrangeMode] = React.useState(false);
+  const [isReordering, setIsReordering] = React.useState(false);
+  const [draggedOpeningId, setDraggedOpeningId] = React.useState<string | null>(
+    null
+  );
+  const [dropTargetOpeningId, setDropTargetOpeningId] = React.useState<
+    string | null
+  >(null);
+  const [originalOrder, setOriginalOrder] = React.useState<
+    CareerOpening[] | null
+  >(null);
+  const hasOrderChanges = Boolean(
+    originalOrder &&
+      openings.some((opening, index) => opening.id !== originalOrder[index]?.id)
+  );
   const [deleteTarget, setDeleteTarget] =
     React.useState<CareerOpening | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -54,6 +70,68 @@ export function AdminCareersClient({
       location: opening.location,
     });
     setIsFormOpen(true);
+  };
+
+  const moveOpening = (sourceId: string, targetId: string) => {
+    if (!isArrangeMode || sourceId === targetId) return;
+    const sourceIndex = openings.findIndex((opening) => opening.id === sourceId);
+    const targetIndex = openings.findIndex((opening) => opening.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const reordered = [...openings];
+    const [opening] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, opening);
+    setOpenings(reordered);
+  };
+
+  const startArrangeMode = () => {
+    setOriginalOrder(openings);
+    setIsArrangeMode(true);
+  };
+
+  const cancelArrangeMode = () => {
+    if (originalOrder) setOpenings(originalOrder);
+    setOriginalOrder(null);
+    setDraggedOpeningId(null);
+    setDropTargetOpeningId(null);
+    setIsArrangeMode(false);
+  };
+
+  const saveArrangeMode = async () => {
+    if (!hasOrderChanges || isReordering) return;
+    setIsReordering(true);
+    try {
+      await saveCareerOpenings(openings);
+      setOriginalOrder(null);
+      setIsArrangeMode(false);
+      toast.success("Career opening order saved.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not save career opening order."
+      );
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    openingId: string
+  ) => {
+    if (!isArrangeMode || isReordering) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", openingId);
+    setDraggedOpeningId(openingId);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDraggedOpeningId(null);
+    setDropTargetOpeningId(null);
   };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -112,24 +190,98 @@ export function AdminCareersClient({
         <p className="text-sm text-slate-500">
           Add, update, or remove the roles shown on the public Careers page.
         </p>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 self-start rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB]"
-        >
-          <Plus className="h-4 w-4" />
-          Add opening
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {isArrangeMode ? (
+            <>
+              <button
+                type="button"
+                onClick={cancelArrangeMode}
+                disabled={isReordering}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveArrangeMode()}
+                disabled={!hasOrderChanges || isReordering}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB] disabled:opacity-50"
+              >
+                {isReordering && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isReordering ? "Saving order..." : "Save order"}
+              </button>
+            </>
+          ) : (
+            <>
+              {openings.length > 1 && (
+                <button
+                  type="button"
+                  onClick={startArrangeMode}
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-[#0754C6] px-4 py-2.5 text-xs font-bold text-[#0754C6] hover:bg-blue-50"
+                >
+                  <GripVertical className="h-4 w-4" />
+                  Rearrange
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="inline-flex items-center gap-2 self-start rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB]"
+              >
+                <Plus className="h-4 w-4" />
+                Add opening
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {isArrangeMode && (
+        <p className="text-xs text-slate-500">
+          Drag a career card to change its position, then save or cancel your changes.
+        </p>
+      )}
 
       {openings.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {openings.map((opening) => (
             <article
               key={opening.id}
-              className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-2xs"
+              draggable={isArrangeMode && !isReordering}
+              onDragStart={(event) => handleDragStart(event, opening.id)}
+              onDragEnd={() => {
+                setDraggedOpeningId(null);
+                setDropTargetOpeningId(null);
+              }}
+              onDragOver={(event) => {
+                if (
+                  isArrangeMode &&
+                  draggedOpeningId &&
+                  draggedOpeningId !== opening.id &&
+                  dropTargetOpeningId !== opening.id
+                ) {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetOpeningId(opening.id);
+                  moveOpening(draggedOpeningId, opening.id);
+                }
+              }}
+              onDrop={handleDrop}
+              className={`flex flex-col rounded-xl border bg-white p-5 shadow-2xs ${
+                dropTargetOpeningId === opening.id
+                  ? "border-[#0754C6] ring-2 ring-[#0754C6]/20"
+                  : "border-slate-200"
+              } ${draggedOpeningId === opening.id ? "opacity-50" : ""} ${
+                isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+              }`}
             >
               <div className="flex items-start gap-3">
+                <GripVertical
+                  className={`mt-1 h-4 w-4 shrink-0 text-slate-400 ${
+                    isArrangeMode ? "" : "hidden"
+                  }`}
+                  aria-hidden="true"
+                />
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0754C6]">
                   <BriefcaseBusiness className="h-5 w-5" />
                 </div>
@@ -151,6 +303,7 @@ export function AdminCareersClient({
                 <button
                   type="button"
                   onClick={() => openEditModal(opening)}
+                  disabled={isArrangeMode}
                   className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                 >
                   <Edit3 className="h-3.5 w-3.5" />
@@ -159,6 +312,7 @@ export function AdminCareersClient({
                 <button
                   type="button"
                   onClick={() => setDeleteTarget(opening)}
+                  disabled={isArrangeMode}
                   className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

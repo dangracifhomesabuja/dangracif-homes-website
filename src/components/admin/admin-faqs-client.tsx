@@ -11,17 +11,15 @@ import {
   EyeOff,
   X,
   Loader2,
-  ArrowUpDown,
-  Sparkles,
-  ChevronDown,
+  GripVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { FaqItem } from "@/lib/db/entities/FaqItem";
 import {
-  getFaqItems,
   saveFaqItem,
   deleteFaqItem,
   toggleFaqPublished,
+  reorderFaqItems,
 } from "@/app/actions/admin-content";
 import { ViewToggle } from "./ui/view-toggle";
 import { ConfirmModal } from "./ui/confirm-modal";
@@ -36,7 +34,21 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
   const [view, setView] = React.useState<"card" | "list">("card");
   const [search, setSearch] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState<"all" | "published" | "draft">("all");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const isLoading = false;
+  const [isArrangeMode, setIsArrangeMode] = React.useState(false);
+  const [isReordering, setIsReordering] = React.useState(false);
+  const [draggedItemId, setDraggedItemId] = React.useState<string | null>(null);
+  const [dropTargetItemId, setDropTargetItemId] = React.useState<string | null>(
+    null
+  );
+  const [originalOrder, setOriginalOrder] = React.useState<FaqItem[] | null>(
+    null
+  );
+  const canReorder = !search.trim() && filterStatus === "all";
+  const hasOrderChanges = Boolean(
+    originalOrder &&
+      items.some((item, index) => item.id !== originalOrder[index]?.id)
+  );
 
   // Edit / Create modal state
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -92,7 +104,13 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
 
     setIsSaving(true);
     try {
-      const saved = await saveFaqItem(formDraft as any);
+      const saved = await saveFaqItem({
+        id: formDraft.id,
+        question: formDraft.question.trim(),
+        answer: formDraft.answer.trim(),
+        sortOrder: formDraft.sortOrder,
+        published: formDraft.published,
+      });
       if (editingItem) {
         setItems((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
         toast.success("FAQ updated successfully");
@@ -101,8 +119,10 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
         toast.success("FAQ created successfully");
       }
       setIsFormOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save FAQ");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save FAQ"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -118,6 +138,70 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
     } catch {
       toast.error("Failed to update status");
     }
+  };
+
+  const moveItem = (sourceId: string, targetId: string) => {
+    if (!isArrangeMode || sourceId === targetId) return;
+    const sourceIndex = items.findIndex((item) => item.id === sourceId);
+    const targetIndex = items.findIndex((item) => item.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const reordered = [...items];
+    const [movedItem] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+    setItems(reordered);
+  };
+
+  const startArrangeMode = () => {
+    if (!canReorder) return;
+    setOriginalOrder(items);
+    setIsArrangeMode(true);
+  };
+
+  const cancelArrangeMode = () => {
+    if (originalOrder) setItems(originalOrder);
+    setOriginalOrder(null);
+    setDraggedItemId(null);
+    setDropTargetItemId(null);
+    setIsArrangeMode(false);
+  };
+
+  const saveArrangeMode = async () => {
+    if (!hasOrderChanges || isReordering) return;
+    setIsReordering(true);
+    try {
+      await reorderFaqItems(items.map((item) => item.id));
+      setItems((current) =>
+        current.map((item, sortOrder) => ({ ...item, sortOrder }))
+      );
+      setOriginalOrder(null);
+      setIsArrangeMode(false);
+      toast.success("FAQ order saved");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save FAQ order"
+      );
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    itemId: string
+  ) => {
+    if (!isArrangeMode || isReordering) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", itemId);
+    setDraggedItemId(itemId);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDraggedItemId(null);
+    setDropTargetItemId(null);
   };
 
   const confirmDelete = async () => {
@@ -157,6 +241,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
             <input
               type="text"
               value={search}
+              disabled={isArrangeMode}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search questions or answers..."
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/70 rounded-lg text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6] focus:bg-white transition-all"
@@ -167,6 +252,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200/60 text-xs">
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("all")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "all"
@@ -178,6 +264,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
             </button>
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("published")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "published"
@@ -189,6 +276,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
             </button>
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("draft")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "draft"
@@ -202,17 +290,57 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <ViewToggle view={view} onChange={setView} />
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold tracking-wide shadow-xs transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add FAQ</span>
-          </button>
+          {isArrangeMode ? (
+            <>
+              <button
+                type="button"
+                onClick={cancelArrangeMode}
+                disabled={isReordering}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveArrangeMode()}
+                disabled={!hasOrderChanges || isReordering}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold shadow-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isReordering && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>{isReordering ? "Saving order..." : "Save order"}</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <ViewToggle view={view} onChange={setView} />
+              {canReorder && (
+                <button
+                  type="button"
+                  onClick={startArrangeMode}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#0754C6] text-[#0754C6] text-xs font-bold hover:bg-blue-50"
+                >
+                  <GripVertical className="h-4 w-4" />
+                  <span>Rearrange</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold tracking-wide shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add FAQ</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {isArrangeMode && (
+        <p className="text-xs text-slate-500">
+          Drag an FAQ card or row to rearrange it, then save or cancel your changes.
+        </p>
+      )}
 
       {/* Main Content Area */}
       {isLoading ? (
@@ -247,11 +375,43 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
           {filteredItems.map((item, idx) => (
             <div
               key={item.id}
-              className="bg-white rounded-lg border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all p-5 flex flex-col justify-between group"
+              draggable={isArrangeMode && !isReordering}
+              onDragStart={(event) => handleDragStart(event, item.id)}
+              onDragEnd={() => {
+                setDraggedItemId(null);
+                setDropTargetItemId(null);
+              }}
+              onDragOver={(event) => {
+                if (
+                  isArrangeMode &&
+                  draggedItemId &&
+                  draggedItemId !== item.id &&
+                  dropTargetItemId !== item.id
+                ) {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetItemId(item.id);
+                  moveItem(draggedItemId, item.id);
+                }
+              }}
+              onDrop={handleDrop}
+              className={`bg-white rounded-lg border transition-all p-5 flex flex-col justify-between group ${
+                dropTargetItemId === item.id
+                  ? "border-[#0754C6] ring-2 ring-[#0754C6]/20"
+                  : "border-slate-200/80 hover:border-slate-300"
+              } ${draggedItemId === item.id ? "opacity-50" : ""} ${
+                isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+              }`}
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2.5">
                   <div className="flex items-center gap-2">
+                    <GripVertical
+                      className={`h-4 w-4 shrink-0 text-slate-400 ${
+                        isArrangeMode ? "" : "hidden"
+                      }`}
+                      aria-hidden="true"
+                    />
                     <span className="w-6 h-6 rounded-md bg-blue-50 text-[#00ABF0] flex items-center justify-center text-xs font-bold shrink-0">
                       Q{idx + 1}
                     </span>
@@ -288,6 +448,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                     <button
                       type="button"
                       onClick={() => toggleCardExpand(item.id)}
+                      disabled={isArrangeMode}
                       className="text-[11px] font-bold text-[#00ABF0] hover:underline mt-1.5 cursor-pointer"
                     >
                       {expandedCards[item.id] ? "Show less" : "Read full answer"}
@@ -301,6 +462,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                 <button
                   type="button"
                   onClick={() => handleTogglePublished(item)}
+                  disabled={isArrangeMode}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
                   {item.published ? (
@@ -317,9 +479,16 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                 </button>
 
                 <div className="flex items-center gap-1">
+                  <GripVertical
+                    className={`h-4 w-4 text-slate-400 ${
+                      isArrangeMode ? "" : "hidden"
+                    }`}
+                    aria-hidden="true"
+                  />
                   <button
                     type="button"
                     onClick={() => openEditModal(item)}
+                    disabled={isArrangeMode}
                     className="p-1.5 rounded-md text-slate-500 hover:text-[#00ABF0] hover:bg-slate-100 cursor-pointer"
                     title="Edit"
                   >
@@ -328,6 +497,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(item)}
+                    disabled={isArrangeMode}
                     className="p-1.5 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                     title="Delete"
                   >
@@ -353,9 +523,43 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredItems.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={item.id}
+                    draggable={isArrangeMode && !isReordering}
+                    onDragStart={(event) => handleDragStart(event, item.id)}
+                    onDragEnd={() => {
+                      setDraggedItemId(null);
+                      setDropTargetItemId(null);
+                    }}
+                    onDragOver={(event) => {
+                      if (
+                        isArrangeMode &&
+                        draggedItemId &&
+                        draggedItemId !== item.id &&
+                        dropTargetItemId !== item.id
+                      ) {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                        setDropTargetItemId(item.id);
+                        moveItem(draggedItemId, item.id);
+                      }
+                    }}
+                    onDrop={handleDrop}
+                    className={`transition-colors ${
+                      dropTargetItemId === item.id
+                        ? "bg-blue-50 outline outline-2 outline-[#0754C6]/30"
+                        : "hover:bg-slate-50/60"
+                    } ${draggedItemId === item.id ? "opacity-50" : ""} ${
+                      isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+                    }`}
+                  >
                     <td className="py-3.5 px-4 font-bold text-slate-400">
-                      {idx + 1}
+                      <span className="inline-flex items-center gap-2">
+                        {isArrangeMode && (
+                          <GripVertical className="h-4 w-4 text-slate-400" />
+                        )}
+                        {idx + 1}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4">
                       <p className="font-bold text-slate-900">{item.question}</p>
@@ -367,6 +571,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                       <button
                         type="button"
                         onClick={() => handleTogglePublished(item)}
+                        disabled={isArrangeMode}
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full cursor-pointer transition-colors ${
                           item.published
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
@@ -383,9 +588,13 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
+                        {isArrangeMode && (
+                          <GripVertical className="h-4 w-4 text-slate-400" />
+                        )}
                         <button
                           type="button"
                           onClick={() => openEditModal(item)}
+                          disabled={isArrangeMode}
                           className="p-1.5 rounded-md text-slate-500 hover:text-[#00ABF0] hover:bg-slate-100 cursor-pointer"
                           title="Edit"
                         >
@@ -394,6 +603,7 @@ export function AdminFaqsClient({ initialItems }: AdminFaqsClientProps) {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(item)}
+                          disabled={isArrangeMode}
                           className="p-1.5 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                           title="Delete"
                         >

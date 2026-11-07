@@ -5,11 +5,13 @@ import { getPublicSiteOverrides } from "@/lib/site-images";
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  const { images, brochureUrl, youtubeUrl } = await getPublicSiteOverrides();
+  const { images, imageCaptions, brochureUrl, youtubeUrl } =
+    await getPublicSiteOverrides();
 
   return (
     <SiteImagesProvider
       overrides={images}
+      imageCaptions={imageCaptions}
       brochureUrl={brochureUrl}
       youtubeUrl={youtubeUrl}
     >

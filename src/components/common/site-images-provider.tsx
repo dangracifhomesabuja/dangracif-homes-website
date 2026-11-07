@@ -3,26 +3,32 @@
 import * as React from "react";
 
 type SiteImageOverrides = Record<string, string>;
+type SiteImageCaptions = Record<string, string>;
 
 const SiteImagesContext = React.createContext<{
   overrides: SiteImageOverrides;
+  imageCaptions: SiteImageCaptions;
   brochureUrl: string;
   youtubeUrl: string;
-}>({ overrides: {}, brochureUrl: "", youtubeUrl: "" });
+}>({ overrides: {}, imageCaptions: {}, brochureUrl: "", youtubeUrl: "" });
 
 export function SiteImagesProvider({
   overrides,
+  imageCaptions,
   brochureUrl,
   youtubeUrl,
   children,
 }: {
   overrides: SiteImageOverrides;
+  imageCaptions: SiteImageCaptions;
   brochureUrl: string;
   youtubeUrl: string;
   children: React.ReactNode;
 }) {
   return (
-    <SiteImagesContext.Provider value={{ overrides, brochureUrl, youtubeUrl }}>
+    <SiteImagesContext.Provider
+      value={{ overrides, imageCaptions, brochureUrl, youtubeUrl }}
+    >
       {children}
     </SiteImagesContext.Provider>
   );
@@ -38,6 +44,14 @@ export function useSiteImageResolver() {
   return React.useCallback(
     (src: string) => overrides[src] || src,
     [overrides]
+  );
+}
+
+export function useSiteImageCaptionResolver() {
+  const { imageCaptions } = React.useContext(SiteImagesContext);
+  return React.useCallback(
+    (src: string, fallback: string) => imageCaptions[src] ?? fallback,
+    [imageCaptions]
   );
 }
 

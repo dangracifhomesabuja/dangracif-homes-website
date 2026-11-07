@@ -1,27 +1,9 @@
-"use client";
+import { getPublicBlogPosts } from "@/app/actions/public-content";
+import { BlogPageClient } from "@/components/blog/blog-page-client";
 
-import * as React from "react";
-import { Header } from "@/components/common/header";
-import { Footer } from "@/components/common/footer";
-import { BlogHero } from "@/components/blog/blog-hero";
+export const dynamic = "force-dynamic";
 
-export default function BlogPage() {
-  const scrollToContact = () => {
-    const target = document.getElementById("contact");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-white text-zinc-900 flex flex-col antialiased">
-      <Header onBookInspectionClick={scrollToContact} />
-
-      <main className="flex-1">
-        <BlogHero />
-      </main>
-
-      <Footer />
-    </div>
-  );
+export default async function BlogPage() {
+  const posts = await getPublicBlogPosts();
+  return <BlogPageClient posts={posts} />;
 }

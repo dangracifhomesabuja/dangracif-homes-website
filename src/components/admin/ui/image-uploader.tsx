@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 interface ImageUploaderProps {
   value?: string;
   onChange: (url: string) => void;
+  onUploadStateChange?: (isUploading: boolean) => void;
   folder?: string;
   label?: string;
   hint?: string;
@@ -16,6 +17,7 @@ interface ImageUploaderProps {
 export function ImageUploader({
   value,
   onChange,
+  onUploadStateChange,
   folder = "general",
   label = "Upload Image",
   hint = "PNG, JPG, WebP up to 10MB (Cloudinary optimized)",
@@ -27,7 +29,7 @@ export function ImageUploader({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleUploadFile = async (file: File) => {
-    if (!file) return;
+    if (!file || isUploading) return;
 
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file (PNG, JPG, WebP)");
@@ -40,6 +42,7 @@ export function ImageUploader({
     }
 
     setIsUploading(true);
+    onUploadStateChange?.(true);
     const toastId = toast.loading("Uploading image via Cloudinary...");
 
     try {
@@ -66,6 +69,7 @@ export function ImageUploader({
       );
     } finally {
       setIsUploading(false);
+      onUploadStateChange?.(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -96,8 +100,9 @@ export function ImageUploader({
           <label className="text-xs font-bold text-slate-700">{label}</label>
           <button
             type="button"
+            disabled={isUploading}
             onClick={() => setShowUrlInput(!showUrlInput)}
-            className="text-[11px] font-semibold text-[#00ABF0] hover:underline cursor-pointer flex items-center gap-1"
+            className="text-[11px] font-semibold text-[#00ABF0] hover:underline cursor-pointer flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LinkIcon className="w-3 h-3" />
             <span>{showUrlInput ? "Upload File" : "Paste URL"}</span>
@@ -109,6 +114,7 @@ export function ImageUploader({
         ref={fileInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
+        disabled={isUploading}
         onChange={(e) => {
           if (e.target.files?.[0]) handleUploadFile(e.target.files[0]);
         }}
@@ -120,12 +126,14 @@ export function ImageUploader({
           <input
             type="url"
             value={urlDraft}
+            disabled={isUploading}
             onChange={(e) => setUrlDraft(e.target.value)}
             placeholder="https://res.cloudinary.com/..."
             className="flex-1 px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6]"
           />
           <button
             type="button"
+            disabled={isUploading}
             onClick={() => {
               const url = urlDraft.trim();
               const isLocalPath = url.startsWith("/") && !url.startsWith("//");
@@ -149,7 +157,7 @@ export function ImageUploader({
               setUrlDraft("");
               toast.success("Image URL applied");
             }}
-            className="px-3.5 py-2 bg-[#0754C6] text-white text-xs font-semibold rounded-lg hover:bg-[#0648AB] cursor-pointer"
+            className="px-3.5 py-2 bg-[#0754C6] text-white text-xs font-semibold rounded-lg hover:bg-[#0648AB] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           >
             Apply
           </button>
@@ -166,9 +174,18 @@ export function ImageUploader({
               className="object-cover"
               unoptimized
             />
-            <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            {isUploading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-slate-900/60 text-sm font-semibold text-white">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading replacement...
+              </div>
+            )}
+            <div className={`absolute inset-0 z-20 bg-slate-900/30 transition-opacity flex items-center justify-center gap-2 ${
+              isUploading ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100"
+            }`}>
               <button
                 type="button"
+                disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
                 className="px-3 py-1.5 rounded-md bg-white/90 text-slate-900 text-xs font-bold hover:bg-white shadow-xs cursor-pointer"
               >
@@ -176,6 +193,7 @@ export function ImageUploader({
               </button>
               <button
                 type="button"
+                disabled={isUploading}
                 onClick={() => onChange("")}
                 className="p-1.5 rounded-md bg-red-600/90 text-white hover:bg-red-600 shadow-xs cursor-pointer"
                 title="Remove Image"
@@ -198,7 +216,8 @@ export function ImageUploader({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
+          aria-disabled={isUploading}
+          onClick={() => !isUploading && fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
             dragActive
               ? "border-[#0754C6] bg-blue-50/50"

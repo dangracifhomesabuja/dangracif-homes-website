@@ -51,6 +51,7 @@ export const InspectionForm: React.FC<InspectionFormProps> = ({
   };
 
   const [submitting, setSubmitting] = React.useState<"whatsapp" | "email" | null>(null);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const recordLead = async () => {
     try {
@@ -72,33 +73,63 @@ export const InspectionForm: React.FC<InspectionFormProps> = ({
 
   const handleWhatsApp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const submission = { ...formData };
     setSubmitting("whatsapp");
-    await recordLead();
+    setSubmissionError(null);
+    const result = await recordLead();
     setSubmitting(null);
+    if (!result.success) {
+      setSubmissionError("We couldn't save your inspection request. Please try again.");
+    }
     if (onSubmitWhatsApp) {
-      onSubmitWhatsApp(formData);
+      onSubmitWhatsApp(submission);
     } else {
-      const text = `Hello Dangracif Homes, I would like to book an inspection for Fidelis Court.\n\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\nUnit: ${formData.unitType}\nDate: ${formData.preferredDate}\nMessage: ${formData.message || "N/A"}`;
+      const text = `Hello Dangracif Homes, I would like to book an inspection for Fidelis Court.\n\nName: ${submission.fullName}\nPhone: ${submission.phone}\nEmail: ${submission.email}\nUnit: ${submission.unitType}\nDate: ${submission.preferredDate}\nMessage: ${submission.message || "N/A"}`;
       window.open(
         `https://wa.me/2348133187860?text=${encodeURIComponent(text)}`,
         "_blank"
       );
     }
+    if (result.success) {
+      setFormData({
+        fullName: "",
+        phone: "",
+        email: "",
+        unitType: "2-bed",
+        preferredDate: "",
+        message: "",
+      });
+    }
   };
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    const submission = { ...formData };
     setSubmitting("email");
-    await recordLead();
+    setSubmissionError(null);
+    const result = await recordLead();
     setSubmitting(null);
+    if (!result.success) {
+      setSubmissionError("We couldn't save your inspection request. Please try again.");
+    }
     if (onSubmitEmail) {
-      onSubmitEmail(formData);
+      onSubmitEmail(submission);
     } else {
-      const subject = `Inspection Booking - ${formData.fullName} (Fidelis Court)`;
-      const body = `Name: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\nUnit: ${formData.unitType}\nDate: ${formData.preferredDate}\nMessage: ${formData.message || "N/A"}`;
+      const subject = `Inspection Booking - ${submission.fullName} (Fidelis Court)`;
+      const body = `Name: ${submission.fullName}\nPhone: ${submission.phone}\nEmail: ${submission.email}\nUnit: ${submission.unitType}\nDate: ${submission.preferredDate}\nMessage: ${submission.message || "N/A"}`;
       window.location.href = `mailto:info@dangracif.com?subject=${encodeURIComponent(
         subject
       )}&body=${encodeURIComponent(body)}`;
+    }
+    if (result.success) {
+      setFormData({
+        fullName: "",
+        phone: "",
+        email: "",
+        unitType: "2-bed",
+        preferredDate: "",
+        message: "",
+      });
     }
   };
 
@@ -186,22 +217,29 @@ export const InspectionForm: React.FC<InspectionFormProps> = ({
             type="button"
             variant={"primary"}
             size="md"
+            disabled={submitting !== null}
             onClick={handleWhatsApp}
             leftIcon={<MessageSquare className="h-4 w-4" />}
           >
-            Send via WhatsApp
+            {submitting === "whatsapp" ? "Saving..." : "Send via WhatsApp"}
           </Button>
 
           <Button
             type="button"
             variant={"secondary"}
             size="md"
+            disabled={submitting !== null}
             onClick={handleEmail}
             leftIcon={<Mail className="h-4 w-4" />}
           >
-            Send via Email
+            {submitting === "email" ? "Saving..." : "Send via Email"}
           </Button>
         </div>
+        {submissionError && (
+          <p role="alert" className="text-sm text-red-600">
+            {submissionError}
+          </p>
+        )}
       </form>
     </div>
   );

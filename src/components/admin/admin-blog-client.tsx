@@ -8,28 +8,25 @@ import {
   Search,
   Edit3,
   Trash2,
-  ExternalLink,
   Eye,
   EyeOff,
   Calendar,
   X,
   Loader2,
-  CheckCircle2,
-  Clock,
-  Sparkles,
+  GripVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BlogPost } from "@/lib/db/entities/BlogPost";
 import {
-  getBlogPosts,
   saveBlogPost,
   deleteBlogPost,
   toggleBlogPostPublished,
+  reorderBlogPosts,
 } from "@/app/actions/admin-content";
 import { ViewToggle } from "./ui/view-toggle";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { ImageUploader } from "./ui/image-uploader";
-import { CardSkeletonGrid, ListSkeletonTable } from "./ui/skeleton-loaders";
+import { BlogRichTextEditor } from "./ui/blog-rich-text-editor";
 import {
   DatePicker,
   formatDatePickerValue,
@@ -45,7 +42,6 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
   const [view, setView] = React.useState<"card" | "list">("card");
   const [search, setSearch] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState<"all" | "published" | "draft">("all");
-  const [isLoading, setIsLoading] = React.useState(false);
 
   // Modal states
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -58,27 +54,36 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
     imageAlt: "",
     imageCaption: "",
     date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    linkText: "Read Article",
-    linkHref: "#",
+    linkText: "",
+    linkHref: "",
     published: true,
   });
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isImageUploading, setIsImageUploading] = React.useState(false);
+  const [isContentImageUploading, setIsContentImageUploading] =
+    React.useState(false);
+  const isUploadPending = isImageUploading || isContentImageUploading;
+  const [isReordering, setIsReordering] = React.useState(false);
+  const [isArrangeMode, setIsArrangeMode] = React.useState(false);
+  const [draggedPostId, setDraggedPostId] = React.useState<string | null>(null);
+  const [dropTargetPostId, setDropTargetPostId] = React.useState<string | null>(
+    null
+  );
+  const [originalOrder, setOriginalOrder] = React.useState<BlogPost[] | null>(
+    null
+  );
+  const canReorder =
+    !search.trim() &&
+    filterStatus === "all" &&
+    posts.every((post) => post.sortOrder >= 0);
+  const hasOrderChanges = Boolean(
+    originalOrder &&
+      posts.some((post, index) => post.id !== originalOrder[index]?.id)
+  );
 
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = React.useState<BlogPost | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const reloadPosts = async () => {
-    setIsLoading(true);
-    try {
-      const fresh = await getBlogPosts(search);
-      setPosts(fresh);
-    } catch {
-      toast.error("Failed to load blog posts");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const openCreateModal = () => {
     setEditingPost(null);
@@ -90,8 +95,8 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
       imageAlt: "",
       imageCaption: "",
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      linkText: "Read Article",
-      linkHref: "#",
+      linkText: "",
+      linkHref: "",
       published: true,
     });
     setIsFormOpen(true);
@@ -108,8 +113,8 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
       imageAlt: post.imageAlt,
       imageCaption: post.imageCaption,
       date: post.date,
-      linkText: post.linkText,
-      linkHref: post.linkHref,
+      linkText: post.linkHref === "#" ? "" : post.linkText,
+      linkHref: post.linkHref === "#" ? "" : post.linkHref,
       published: post.published,
     });
     setIsFormOpen(true);
@@ -117,6 +122,10 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadPending) {
+      toast.error("Wait for all article images to finish uploading before saving.");
+      return;
+    }
     if (!formDraft.title?.trim()) {
       toast.error("Article title is required");
       return;
@@ -124,17 +133,31 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
 
     setIsSaving(true);
     try {
-      const saved = await saveBlogPost(formDraft as any);
+      const saved = await saveBlogPost({
+        id: formDraft.id,
+        title: formDraft.title.trim(),
+        summary: formDraft.summary,
+        expandedContent: formDraft.expandedContent,
+        imageSrc: formDraft.imageSrc,
+        imageAlt: formDraft.imageAlt,
+        imageCaption: formDraft.imageCaption,
+        date: formDraft.date,
+        linkText: formDraft.linkText,
+        linkHref: formDraft.linkHref,
+        published: formDraft.published,
+      });
       if (editingPost) {
         setPosts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
         toast.success("Blog article updated");
       } else {
-        setPosts((prev) => [saved, ...prev]);
+        setPosts((prev) => [...prev, saved]);
         toast.success("Blog article published");
       }
       setIsFormOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save article");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save article"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -150,6 +173,67 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
     } catch {
       toast.error("Failed to update status");
     }
+  };
+
+  const movePost = (sourceId: string, targetId: string) => {
+    if (!isArrangeMode || sourceId === targetId) return;
+    const sourceIndex = posts.findIndex((post) => post.id === sourceId);
+    const targetIndex = posts.findIndex((post) => post.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const reordered = [...posts];
+    const [movedPost] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedPost);
+    setPosts(reordered);
+  };
+
+  const startArrangeMode = () => {
+    if (!canReorder) return;
+    setOriginalOrder(posts);
+    setIsArrangeMode(true);
+  };
+
+  const cancelArrangeMode = () => {
+    if (originalOrder) setPosts(originalOrder);
+    setOriginalOrder(null);
+    setDraggedPostId(null);
+    setDropTargetPostId(null);
+    setIsArrangeMode(false);
+  };
+
+  const saveArrangeMode = async () => {
+    if (!hasOrderChanges || isReordering) return;
+    setIsReordering(true);
+    try {
+      await reorderBlogPosts(posts.map((post) => post.id));
+      setOriginalOrder(null);
+      setIsArrangeMode(false);
+      toast.success("Blog order saved");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save blog order"
+      );
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    postId: string
+  ) => {
+    if (!isArrangeMode || isReordering) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", postId);
+    setDraggedPostId(postId);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDraggedPostId(null);
+    setDropTargetPostId(null);
   };
 
   const confirmDelete = async () => {
@@ -190,6 +274,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
             <input
               type="text"
               value={search}
+              disabled={isArrangeMode}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search articles by title or summary..."
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/70 rounded-lg text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6] focus:bg-white transition-all"
@@ -200,6 +285,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200/60 text-xs">
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("all")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "all"
@@ -211,6 +297,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
             </button>
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("published")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "published"
@@ -222,6 +309,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
             </button>
             <button
               type="button"
+              disabled={isArrangeMode}
               onClick={() => setFilterStatus("draft")}
               className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 filterStatus === "draft"
@@ -235,26 +323,67 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <ViewToggle view={view} onChange={setView} />
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold tracking-wide shadow-xs transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Article</span>
-          </button>
+          {isArrangeMode ? (
+            <>
+              <button
+                type="button"
+                onClick={cancelArrangeMode}
+                disabled={isReordering}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveArrangeMode()}
+                disabled={!hasOrderChanges || isReordering}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold shadow-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isReordering && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>{isReordering ? "Saving order..." : "Save order"}</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <ViewToggle view={view} onChange={setView} />
+              {canReorder && (
+                <button
+                  type="button"
+                  onClick={startArrangeMode}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#0754C6] text-[#0754C6] text-xs font-bold hover:bg-blue-50"
+                >
+                  <GripVertical className="h-4 w-4" />
+                  <span>Rearrange</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold tracking-wide shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Article</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
+      {!canReorder && !isArrangeMode && (
+        <p className="text-xs text-slate-500">
+          {search.trim() || filterStatus !== "all"
+            ? "Clear search and select All to rearrange articles."
+            : "Apply the blog ordering database migration to enable rearrangement."}
+        </p>
+      )}
+      {isArrangeMode && (
+        <p className="text-xs text-slate-500">
+          Drag an article card or row to rearrange it, then save or cancel your changes.
+        </p>
+      )}
+
       {/* Main Content Area */}
-      {isLoading ? (
-        view === "card" ? (
-          <CardSkeletonGrid count={6} />
-        ) : (
-          <ListSkeletonTable rows={6} />
-        )
-      ) : filteredPosts.length === 0 ? (
+      {filteredPosts.length === 0 ? (
         <div className="bg-white rounded-lg border border-dashed border-slate-300 p-12 text-center">
           <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
             <FileText className="w-6 h-6" />
@@ -277,18 +406,42 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
       ) : view === "card" ? (
         /* CARD VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredPosts.map((post) => (
+          {filteredPosts.map((post) => {
+            return (
             <div
               key={post.id}
-              className="bg-white rounded-lg border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col overflow-hidden group"
+              draggable={isArrangeMode && !isReordering}
+              onDragStart={(event) => handleDragStart(event, post.id)}
+              onDragEnd={() => {
+                setDraggedPostId(null);
+                setDropTargetPostId(null);
+              }}
+              onDragOver={(event) => {
+                if (isArrangeMode && draggedPostId && draggedPostId !== post.id) {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetPostId(post.id);
+                  movePost(draggedPostId, post.id);
+                }
+              }}
+              onDrop={handleDrop}
+              className={`bg-white rounded-lg border hover:shadow-md transition-all flex flex-col overflow-hidden group ${
+                dropTargetPostId === post.id
+                  ? "border-[#0754C6] ring-2 ring-[#0754C6]/20"
+                  : "border-slate-200/80 hover:border-slate-300"
+              } ${draggedPostId === post.id ? "opacity-50" : ""} ${
+                isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+              }`}
             >
               {/* Card Image */}
               <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
                 {post.imageSrc ? (
-                  <img
+                  <Image
                     src={post.imageSrc}
                     alt={post.imageAlt || post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50">
@@ -336,6 +489,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                   <button
                     type="button"
                     onClick={() => handleTogglePublished(post)}
+                    disabled={isArrangeMode}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
                     title={post.published ? "Unpublish to draft" : "Publish to site"}
                   >
@@ -353,9 +507,19 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                   </button>
 
                   <div className="flex items-center gap-1">
+                    <span
+                      className={`p-1.5 rounded-md text-slate-500 ${
+                        isArrangeMode ? "" : "hidden"
+                      }`}
+                      aria-hidden="true"
+                      title="Drag the card to rearrange"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </span>
                     <button
                       type="button"
                       onClick={() => openEditModal(post)}
+                      disabled={isArrangeMode}
                       className="p-1.5 rounded-md text-slate-500 hover:text-[#00ABF0] hover:bg-slate-100 cursor-pointer transition-colors"
                       title="Edit Article"
                     >
@@ -364,6 +528,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(post)}
+                      disabled={isArrangeMode}
                       className="p-1.5 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
                       title="Delete Article"
                     >
@@ -373,7 +538,8 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* LIST VIEW */
@@ -389,16 +555,43 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredPosts.map((post) => (
-                  <tr key={post.id} className="hover:bg-slate-50/60 transition-colors">
+                {filteredPosts.map((post) => {
+                return (
+                <tr
+                  key={post.id}
+                  draggable={isArrangeMode && !isReordering}
+                  onDragStart={(event) => handleDragStart(event, post.id)}
+                  onDragEnd={() => {
+                    setDraggedPostId(null);
+                    setDropTargetPostId(null);
+                  }}
+                  onDragOver={(event) => {
+                    if (isArrangeMode && draggedPostId && draggedPostId !== post.id) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropTargetPostId(post.id);
+                      movePost(draggedPostId, post.id);
+                    }
+                  }}
+                  onDrop={handleDrop}
+                  className={`transition-colors ${
+                    dropTargetPostId === post.id
+                      ? "bg-blue-50 outline outline-2 outline-[#0754C6]/30"
+                      : "hover:bg-slate-50/60"
+                  } ${draggedPostId === post.id ? "opacity-50" : ""} ${
+                    isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+                  }`}
+                >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-10 rounded-md bg-slate-100 overflow-hidden shrink-0">
+                        <div className="relative w-12 h-10 rounded-md bg-slate-100 overflow-hidden shrink-0">
                           {post.imageSrc ? (
-                            <img
+                            <Image
                               src={post.imageSrc}
                               alt=""
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="48px"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300">
@@ -423,6 +616,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                       <button
                         type="button"
                         onClick={() => handleTogglePublished(post)}
+                        disabled={isArrangeMode}
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full cursor-pointer transition-colors ${
                           post.published
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
@@ -439,9 +633,19 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
+                        <span
+                          className={`p-1.5 rounded-md text-slate-500 ${
+                            isArrangeMode ? "" : "hidden"
+                          }`}
+                          aria-hidden="true"
+                          title="Drag the row to rearrange"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </span>
                         <button
                           type="button"
                           onClick={() => openEditModal(post)}
+                          disabled={isArrangeMode}
                           className="p-1.5 rounded-md text-slate-500 hover:text-[#00ABF0] hover:bg-slate-100 cursor-pointer"
                           title="Edit"
                         >
@@ -450,6 +654,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(post)}
+                          disabled={isArrangeMode}
                           className="p-1.5 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                           title="Delete"
                         >
@@ -458,7 +663,8 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -470,7 +676,9 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
-            onClick={() => !isSaving && setIsFormOpen(false)}
+            onClick={() =>
+              !isSaving && !isUploadPending && setIsFormOpen(false)
+            }
           />
 
           <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden z-10 flex flex-col animate-in fade-in zoom-in-95 duration-150">
@@ -493,7 +701,7 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                disabled={isSaving}
+                disabled={isSaving || isUploadPending}
                 className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -539,18 +747,38 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Link Text
+                    Card Link Label
                   </label>
                   <input
                     type="text"
+                    maxLength={255}
                     value={formDraft.linkText || ""}
                     onChange={(e) =>
                       setFormDraft((prev) => ({ ...prev, linkText: e.target.value }))
                     }
-                    placeholder="Read Article"
+                    placeholder="e.g. Learn more"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6] focus:bg-white"
                   />
+                  <p className="mt-1 text-[10px] font-normal text-slate-500">
+                    Add both a label and URL to show a link on the published card.
+                  </p>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Card Link URL
+                </label>
+                <input
+                  type="text"
+                  maxLength={500}
+                  value={formDraft.linkHref || ""}
+                  onChange={(e) =>
+                    setFormDraft((prev) => ({ ...prev, linkHref: e.target.value }))
+                  }
+                  placeholder="https://example.com or /contact"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6] focus:bg-white"
+                />
               </div>
 
               {/* Cloudinary Image Uploader */}
@@ -559,9 +787,10 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 onChange={(url) =>
                   setFormDraft((prev) => ({ ...prev, imageSrc: url }))
                 }
+                onUploadStateChange={setIsImageUploading}
                 folder="blog"
                 label="Cover Image"
-                hint="Upload via Cloudinary or paste external link"
+                hint="PNG, JPG, WebP, or GIF up to 10MB, or paste a Cloudinary/site URL."
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -614,18 +843,20 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Full Article Content
                 </label>
-                <textarea
-                  rows={6}
+                <BlogRichTextEditor
+                  key={editingPost?.id ?? "new"}
                   value={formDraft.expandedContent || ""}
-                  onChange={(e) =>
+                  onChange={(expandedContent) =>
                     setFormDraft((prev) => ({
                       ...prev,
-                      expandedContent: e.target.value,
+                      expandedContent,
                     }))
                   }
-                  placeholder="Complete article body text or markdown details..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20 focus:border-[#0754C6] focus:bg-white resize-y"
+                  onUploadStateChange={setIsContentImageUploading}
                 />
+                <p className="mt-1 text-[10px] text-slate-500">
+                  Format text, add quotes, lists, links, highlights, and uploaded images.
+                </p>
               </div>
 
               {/* Published Switch */}
@@ -654,18 +885,28 @@ export function AdminBlogClient({ initialPosts }: AdminBlogClientProps) {
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  disabled={isSaving}
+                  disabled={isSaving || isUploadPending}
                   className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || isUploadPending}
                   className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#0754C6] hover:bg-[#0648AB] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-60"
                 >
-                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingPost ? "Update Article" : "Publish Article"}</span>
+                  {isSaving || isUploadPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : null}
+                  <span>
+                    {isUploadPending
+                      ? "Uploading image..."
+                      : isSaving
+                        ? "Saving..."
+                        : editingPost
+                          ? "Update Article"
+                          : "Publish Article"}
+                  </span>
                 </button>
               </div>
             </form>

@@ -55,14 +55,18 @@ export function AdminUnitsClient({ initialUnits }: AdminUnitsClientProps) {
   const handleSave = async (id: string) => {
     setIsSaving(true);
     try {
-      await updatePropertyUnitAction(id, unitForm);
+      const result = await updatePropertyUnitAction(id, unitForm);
       setUnits((curr) =>
-        curr.map((u) => (u.id === id ? { ...u, ...unitForm } : u))
+        curr.map((unit) =>
+          unit.id === id ? { ...unit, ...result.unit } : unit
+        )
       );
       setEditingUnitId(null);
       toast.success("Unit details updated successfully");
-    } catch {
-      toast.error("Failed to update unit details");
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update unit details"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -195,6 +199,9 @@ export function AdminUnitsClient({ initialUnits }: AdminUnitsClientProps) {
                           </label>
                           <input
                             type="number"
+                            min={0}
+                            max={unitForm.unitsCount ?? unit.unitsCount}
+                            step={1}
                             value={
                               unitForm.availableUnits ?? unit.availableUnits
                             }
@@ -213,6 +220,8 @@ export function AdminUnitsClient({ initialUnits }: AdminUnitsClientProps) {
                           </label>
                           <input
                             type="number"
+                            min={0}
+                            step={1}
                             value={unitForm.unitsCount ?? unit.unitsCount}
                             onChange={(e) =>
                               setUnitForm((prev) => ({

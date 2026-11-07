@@ -25,7 +25,7 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     id: "1-bed",
     title: "1-Bedroom Apartment",
     unitsCount: 32,
-    availableUnits: 24,
+    availableUnits: 32,
     description: "Compact, efficient city living with premium finishes.",
     price: "₦55,500,000",
     numericPrice: 55500000,
@@ -38,7 +38,7 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     id: "2-bed",
     title: "2-Bedroom Apartment",
     unitsCount: 48,
-    availableUnits: 31,
+    availableUnits: 48,
     description: "Ideal for young families & professionals. Spacious living.",
     price: "₦82,500,000",
     numericPrice: 82500000,
@@ -51,12 +51,12 @@ const DEFAULT_PROPERTY_UNITS: PropertyUnit[] = [
     id: "4-bed-terrace",
     title: "4-Bedroom Terrace (Shell)",
     unitsCount: 8,
-    availableUnits: 4,
+    availableUnits: 8,
     description: "Shell option — finish to your bespoke taste & architectural flair.",
     price: "₦127,500,000",
     numericPrice: 127500000,
     imageSrc: "/images/terrace-duplex.jpg",
-    status: "limited",
+    status: "available",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -137,51 +137,29 @@ export async function getDashboardStats() {
       units,
     });
   } catch (err) {
-    console.warn("Could not fetch DB dashboard stats, returning resilient fallbacks:", err);
+    console.warn("Could not fetch DB dashboard stats:", err);
     const units = DEFAULT_PROPERTY_UNITS;
     const totalUnits = units.reduce((acc, u) => acc + (u.unitsCount || 0), 0);
     const availableUnits = units.reduce((acc, u) => acc + (u.availableUnits || 0), 0);
     return toPlain({
       overview: {
-        totalLeads: 4,
-        newLeads: 2,
-        scheduledInspections: 1,
-        closedLeads: 1,
+        totalLeads: 0,
+        newLeads: 0,
+        scheduledInspections: 0,
+        closedLeads: 0,
         totalUnits,
         availableUnits,
         soldUnits: totalUnits - availableUnits,
-        estimatedPipeline: 258000000,
+        estimatedPipeline: 0,
       },
       byType: {
-        inspections: 2,
-        reservations: 1,
-        buyRequests: 1,
+        inspections: 0,
+        reservations: 0,
+        buyRequests: 0,
         openHouse: 0,
         contacts: 0,
       },
-      recentLeads: [
-        {
-          id: "lead-1",
-          type: "inspection",
-          fullName: "Engr. Nnamdi Okonjo",
-          phone: "+234 803 219 4488",
-          email: "nnamdi.okonjo@example.com",
-          unitType: "2-bed",
-          status: "new",
-          preferredDate: "Saturday, 10:00 AM",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "lead-2",
-          type: "reserve",
-          fullName: "Hajiya Maryam Bello",
-          phone: "+234 812 887 1109",
-          email: "m.bello@investments.ng",
-          unitType: "4-bed-terrace",
-          status: "contacted",
-          createdAt: new Date().toISOString(),
-        },
-      ],
+      recentLeads: [],
       units,
     });
   }
@@ -226,79 +204,8 @@ export async function getLeadsList(params?: {
 
     return toPlain(leads);
   } catch (err) {
-    console.warn("Could not fetch DB leads, returning fallback list:", err);
-    const fallbackDate = new Date();
-    const fallbackLeads: LeadInquiry[] = [
-      {
-        id: "sample-lead-1",
-        type: "buy",
-        fullName: "Dr. Oladipo Adeleke",
-        phone: "+234 803 555 0192",
-        email: "oladipo.adeleke@example.com",
-        unitType: "2-bed",
-        numberOfUnits: 1,
-        paymentOption: "Outright payment",
-        preferredDate: null,
-        attendees: 1,
-        status: "new",
-        message: "Interested in outright purchase for unit on 2nd floor.",
-        notes: "Called client. Preparing invoice for review.",
-        createdAt: fallbackDate,
-        updatedAt: fallbackDate,
-      },
-      {
-        id: "sample-lead-2",
-        type: "inspection",
-        fullName: "Mrs. Chioma Eze",
-        phone: "+234 812 444 8821",
-        email: "chioma.eze@example.com",
-        unitType: "4-bed-terrace",
-        numberOfUnits: 1,
-        paymentOption: null,
-        preferredDate: "2026-10-25",
-        attendees: 1,
-        status: "scheduled",
-        message: "Requesting Saturday afternoon site walkthrough with family.",
-        notes: "Confirmed for Saturday 2:00 PM with estate guide.",
-        createdAt: fallbackDate,
-        updatedAt: fallbackDate,
-      },
-      {
-        id: "sample-lead-3",
-        type: "reserve",
-        fullName: "Alhaji Ibrahim Musa",
-        phone: "+234 705 999 3321",
-        email: "ibrahim.m@example.com",
-        unitType: "1-bed",
-        numberOfUnits: 2,
-        paymentOption: "12-month installment",
-        preferredDate: null,
-        attendees: 1,
-        status: "contacted",
-        message: "Looking to reserve 2 units as investment rentals.",
-        notes: "Sent payment milestone breakdown.",
-        createdAt: fallbackDate,
-        updatedAt: fallbackDate,
-      },
-      {
-        id: "sample-lead-4",
-        type: "open-house",
-        fullName: "Barrister Anthony Udoh",
-        phone: "+234 809 111 7765",
-        email: "anthony.udoh@example.com",
-        unitType: "2-bed",
-        numberOfUnits: 1,
-        paymentOption: null,
-        preferredDate: null,
-        attendees: 3,
-        status: "new",
-        message: "Attending open house next Saturday with partners.",
-        notes: null,
-        createdAt: fallbackDate,
-        updatedAt: fallbackDate,
-      },
-    ];
-    return toPlain(fallbackLeads);
+    console.warn("Could not fetch DB leads:", err);
+    return [];
   }
 }
 
@@ -349,18 +256,70 @@ export async function getPropertyUnitsList() {
 
 export async function updatePropertyUnitAction(
   id: string,
-  data: Partial<PropertyUnit>
+  data: Partial<
+    Pick<
+      PropertyUnit,
+      "price" | "availableUnits" | "unitsCount" | "status" | "description"
+    >
+  >
 ) {
   await requireAuth();
   const ds = await getDatabaseConnection();
   const unitRepo = ds.getRepository<PropertyUnit>("property_units");
 
-  await unitRepo.update(id, data);
+  const existing = await unitRepo.findOne({ where: { id } });
+  const fallback = DEFAULT_PROPERTY_UNITS.find((unit) => unit.id === id);
+  if (!existing && !fallback) {
+    throw new Error("This estate unit was not found. Refresh the inventory and try again.");
+  }
+
+  const unit = existing
+    ? existing
+    : fallback
+      ? unitRepo.create(fallback)
+      : null;
+  if (!unit) {
+    throw new Error("This estate unit was not found. Refresh the inventory and try again.");
+  }
+  const updated = { ...unit, ...data };
+  if (
+    !Number.isInteger(updated.unitsCount) ||
+    updated.unitsCount < 0 ||
+    !Number.isInteger(updated.availableUnits) ||
+    updated.availableUnits < 0 ||
+    updated.availableUnits > updated.unitsCount
+  ) {
+    throw new Error(
+      "Available units must be a whole number between zero and the total units."
+    );
+  }
+  if (typeof updated.price !== "string" || updated.price.length > 100) {
+    throw new Error("Enter a valid listing price.");
+  }
+  if (typeof updated.description !== "string") {
+    throw new Error("Enter a valid unit description.");
+  }
+  if (!["available", "limited", "sold_out"].includes(updated.status)) {
+    throw new Error("Choose a valid inventory status.");
+  }
+
+  const saved = await unitRepo.save(updated);
   revalidatePath("/admin");
+  revalidatePath("/admin/units");
   revalidatePath("/fideliscourt");
   revalidatePath("/fidelis-court");
   revalidatePath("/pricing");
-  return { success: true };
+  return {
+    success: true,
+    unit: {
+      id: saved.id,
+      price: saved.price,
+      availableUnits: saved.availableUnits,
+      unitsCount: saved.unitsCount,
+      status: saved.status,
+      description: saved.description,
+    },
+  };
 }
 
 // Public API for submitting inquiries directly to PostgreSQL

@@ -11,20 +11,40 @@ interface BlogCardProps {
   post: BlogPost;
 }
 
+function isSafeCardLink(href: string) {
+  return (
+    /^https?:\/\//i.test(href) ||
+    (href.startsWith("/") && !href.startsWith("//"))
+  );
+}
+
 export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [failedImageSrc, setFailedImageSrc] = React.useState<string | null>(null);
 
   return (
     <article className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-fit">
       {/* Top Image */}
       <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-100">
-        <Image
-          src={post.imageSrc}
-          alt={post.imageAlt}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+        {post.imageSrc && failedImageSrc !== post.imageSrc ? (
+          <Image
+            key={post.imageSrc}
+            src={post.imageSrc}
+            alt={post.imageAlt || post.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => setFailedImageSrc(post.imageSrc)}
+          />
+        ) : (
+          <div
+            role="img"
+            aria-label={`${post.title} cover image unavailable`}
+            className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center text-sm font-medium text-slate-500"
+          >
+            Image unavailable
+          </div>
+        )}
       </div>
 
       {/* Card Content */}
@@ -62,22 +82,39 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
           </button>
         </div>
 
+        {post.linkText?.trim() &&
+          post.linkHref?.trim() &&
+          isSafeCardLink(post.linkHref) && (
+            <div className="pt-3">
+              {post.linkHref.startsWith("/") ? (
+                <Link
+                  href={post.linkHref}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#00ABF0] hover:text-[#00ABF0]/80 hover:gap-2 transition-all"
+                >
+                  <span>{post.linkText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              ) : (
+                <a
+                  href={post.linkHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#00ABF0] hover:text-[#00ABF0]/80 hover:gap-2 transition-all"
+                >
+                  <span>{post.linkText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          )}
+
         {/* Expanded Content */}
         {isExpanded && (
           <div className="pt-4 mt-3 border-t border-slate-300 space-y-4 animate-in fade-in duration-200">
-            <p className="text-sm text-slate-700 leading-relaxed">
-              {post.expandedContent}
-            </p>
-
-            <div>
-              <Link
-                href={post.linkHref}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#00ABF0] hover:text-[#00ABF0]/80 hover:gap-2 transition-all cursor-pointer"
-              >
-                <span>{post.linkText}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            <div
+              className="blog-rich-content text-sm text-slate-700"
+              dangerouslySetInnerHTML={{ __html: post.expandedContent }}
+            />
           </div>
         )}
       </div>

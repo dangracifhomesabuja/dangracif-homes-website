@@ -88,22 +88,35 @@ export default function BecomeAnAgentPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    await recordLeadToBackend();
-    setSubmittedSuccess(true);
-    setIsSubmitting(false);
-
+    const submission = { applyingAs, fullName, phone, email, address, experience };
     const text = [
       `Hello Dangracif Homes, I would like to apply as a Fidelis Court Agent.`,
       ``,
-      `Applying as: ${applyingAs === "company" ? "Company" : "Individual"}`,
-      `Full name: ${fullName}`,
-      `Phone: ${phone}`,
-      `Email: ${email}`,
-      `Address: ${address}`,
-      `Real Estate Experience: ${experience || "None"}`,
+      `Applying as: ${submission.applyingAs === "company" ? "Company" : "Individual"}`,
+      `Full name: ${submission.fullName}`,
+      `Phone: ${submission.phone}`,
+      `Email: ${submission.email}`,
+      `Address: ${submission.address}`,
+      `Real Estate Experience: ${submission.experience || "None"}`,
       `Agency Agreement: I accept a 3% agency fee for referring a client to Dangracif Homes.`,
     ].join("\n");
+
+    setIsSubmitting(true);
+    setSubmittedSuccess(false);
+    const result = await recordLeadToBackend();
+    setIsSubmitting(false);
+    if (result.success) {
+      setSubmittedSuccess(true);
+      setFullName("");
+      setPhone("");
+      setEmail("");
+      setAddress("");
+      setExperience("");
+      setApplyingAs("individual");
+      setAcceptedTerms(false);
+    } else {
+      setErrorMessage("We couldn't save your application. Your message will still open in WhatsApp; please try again if needed.");
+    }
 
     const waUrl = `https://wa.me/2348133187860?text=${encodeURIComponent(text)}`;
     window.open(waUrl, "_blank");
@@ -113,25 +126,38 @@ export default function BecomeAnAgentPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    await recordLeadToBackend();
-    setSubmittedSuccess(true);
-    setIsSubmitting(false);
-
-    const subject = `Agent Application - ${fullName}`;
+    const submission = { applyingAs, fullName, phone, email, address, experience };
+    const subject = `Agent Application - ${submission.fullName}`;
     const body = [
       `Hello Dangracif Homes,`,
       ``,
       `I would like to apply as an official Agent for Fidelis Court.`,
       ``,
-      `Applying as: ${applyingAs === "company" ? "Company" : "Individual"}`,
-      `Full name: ${fullName}`,
-      `Phone: ${phone}`,
-      `Email: ${email}`,
-      `Address: ${address}`,
-      `Real Estate Experience: ${experience || "None"}`,
+      `Applying as: ${submission.applyingAs === "company" ? "Company" : "Individual"}`,
+      `Full name: ${submission.fullName}`,
+      `Phone: ${submission.phone}`,
+      `Email: ${submission.email}`,
+      `Address: ${submission.address}`,
+      `Real Estate Experience: ${submission.experience || "None"}`,
       `Agency Agreement: I accept a 3% agency fee for referring a client to Dangracif Homes.`,
     ].join("\n");
+
+    setIsSubmitting(true);
+    setSubmittedSuccess(false);
+    const result = await recordLeadToBackend();
+    setIsSubmitting(false);
+    if (result.success) {
+      setSubmittedSuccess(true);
+      setFullName("");
+      setPhone("");
+      setEmail("");
+      setAddress("");
+      setExperience("");
+      setApplyingAs("individual");
+      setAcceptedTerms(false);
+    } else {
+      setErrorMessage("We couldn't save your application. Your message will still open in your email app; please try again if needed.");
+    }
 
     window.location.href = `mailto:info@dangracif.com?subject=${encodeURIComponent(
       subject

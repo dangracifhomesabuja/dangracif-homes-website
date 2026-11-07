@@ -11,6 +11,7 @@ export class BlogPost {
   date!: string;
   linkText!: string;
   linkHref!: string;
+  sortOrder!: number;
   published!: boolean;
   createdAt!: Date;
   updatedAt!: Date;
@@ -31,6 +32,7 @@ export const BlogPostSchema = new EntitySchema<BlogPost>({
     date: { type: "varchar", length: 100, default: "" },
     linkText: { type: "varchar", length: 255, default: "" },
     linkHref: { type: "varchar", length: 500, default: "" },
+    sortOrder: { type: "int", default: 0 },
     published: { type: "boolean", default: true },
     createdAt: { type: "timestamp with time zone", createDate: true },
     updatedAt: { type: "timestamp with time zone", updateDate: true },

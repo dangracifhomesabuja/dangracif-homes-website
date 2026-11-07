@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveOtherProjects } from "@/app/actions/admin-content";
@@ -38,6 +39,21 @@ export function AdminProjectsClient({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<ProjectDraft>(EMPTY_DRAFT);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isArrangeMode, setIsArrangeMode] = React.useState(false);
+  const [isReordering, setIsReordering] = React.useState(false);
+  const [draggedProjectId, setDraggedProjectId] = React.useState<string | null>(
+    null
+  );
+  const [dropTargetProjectId, setDropTargetProjectId] = React.useState<
+    string | null
+  >(null);
+  const [originalOrder, setOriginalOrder] = React.useState<
+    OtherProject[] | null
+  >(null);
+  const hasOrderChanges = Boolean(
+    originalOrder &&
+      projects.some((project, index) => project.id !== originalOrder[index]?.id)
+  );
   const [deleteTarget, setDeleteTarget] = React.useState<OtherProject | null>(
     null
   );
@@ -59,6 +75,66 @@ export function AdminProjectsClient({
       imageUrl: project.imageUrl,
     });
     setIsFormOpen(true);
+  };
+
+  const moveProject = (sourceId: string, targetId: string) => {
+    if (!isArrangeMode || sourceId === targetId) return;
+    const sourceIndex = projects.findIndex((project) => project.id === sourceId);
+    const targetIndex = projects.findIndex((project) => project.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const reordered = [...projects];
+    const [project] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, project);
+    setProjects(reordered);
+  };
+
+  const startArrangeMode = () => {
+    setOriginalOrder(projects);
+    setIsArrangeMode(true);
+  };
+
+  const cancelArrangeMode = () => {
+    if (originalOrder) setProjects(originalOrder);
+    setOriginalOrder(null);
+    setDraggedProjectId(null);
+    setDropTargetProjectId(null);
+    setIsArrangeMode(false);
+  };
+
+  const saveArrangeMode = async () => {
+    if (!hasOrderChanges || isReordering) return;
+    setIsReordering(true);
+    try {
+      await saveOtherProjects(projects);
+      setOriginalOrder(null);
+      setIsArrangeMode(false);
+      toast.success("Project order saved.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not save project order."
+      );
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleDragStart = (
+    event: React.DragEvent<HTMLElement>,
+    projectId: string
+  ) => {
+    if (!isArrangeMode || isReordering) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", projectId);
+    setDraggedProjectId(projectId);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDraggedProjectId(null);
+    setDropTargetProjectId(null);
   };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -118,22 +194,90 @@ export function AdminProjectsClient({
         <p className="text-sm text-slate-500">
           Add and update the projects shown on the public Other Projects page.
         </p>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 self-start rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB]"
-        >
-          <Plus className="h-4 w-4" />
-          Add project
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {isArrangeMode ? (
+            <>
+              <button
+                type="button"
+                onClick={cancelArrangeMode}
+                disabled={isReordering}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveArrangeMode()}
+                disabled={!hasOrderChanges || isReordering}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB] disabled:opacity-50"
+              >
+                {isReordering && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isReordering ? "Saving order..." : "Save order"}
+              </button>
+            </>
+          ) : (
+            <>
+              {projects.length > 1 && (
+                <button
+                  type="button"
+                  onClick={startArrangeMode}
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-[#0754C6] px-4 py-2.5 text-xs font-bold text-[#0754C6] hover:bg-blue-50"
+                >
+                  <GripVertical className="h-4 w-4" />
+                  Rearrange
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="inline-flex items-center gap-2 self-start rounded-lg bg-[#0754C6] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0648AB]"
+              >
+                <Plus className="h-4 w-4" />
+                Add project
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {isArrangeMode && (
+        <p className="text-xs text-slate-500">
+          Drag a project card to change its position, then save or cancel your changes.
+        </p>
+      )}
 
       {projects.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => (
             <article
               key={project.id}
-              className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs"
+              draggable={isArrangeMode && !isReordering}
+              onDragStart={(event) => handleDragStart(event, project.id)}
+              onDragEnd={() => {
+                setDraggedProjectId(null);
+                setDropTargetProjectId(null);
+              }}
+              onDragOver={(event) => {
+                if (
+                  isArrangeMode &&
+                  draggedProjectId &&
+                  draggedProjectId !== project.id &&
+                  dropTargetProjectId !== project.id
+                ) {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDropTargetProjectId(project.id);
+                  moveProject(draggedProjectId, project.id);
+                }
+              }}
+              onDrop={handleDrop}
+              className={`flex flex-col overflow-hidden rounded-xl border bg-white shadow-2xs ${
+                dropTargetProjectId === project.id
+                  ? "border-[#0754C6] ring-2 ring-[#0754C6]/20"
+                  : "border-slate-200"
+              } ${draggedProjectId === project.id ? "opacity-50" : ""} ${
+                isArrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+              }`}
             >
               <div className="relative flex aspect-[16/7] items-center justify-center bg-gradient-to-br from-[#0D1B3E] to-[#0754C6]">
                 {project.imageUrl ? (
@@ -149,6 +293,12 @@ export function AdminProjectsClient({
                 )}
               </div>
               <div className="flex flex-1 flex-col p-5">
+                <GripVertical
+                  className={`mb-2 h-4 w-4 text-slate-400 ${
+                    isArrangeMode ? "" : "hidden"
+                  }`}
+                  aria-hidden="true"
+                />
                 <span className="self-start rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0754C6]">
                   {project.status}
                 </span>
@@ -166,6 +316,7 @@ export function AdminProjectsClient({
                   <button
                     type="button"
                     onClick={() => openEditModal(project)}
+                    disabled={isArrangeMode}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
@@ -174,6 +325,7 @@ export function AdminProjectsClient({
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(project)}
+                    disabled={isArrangeMode}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

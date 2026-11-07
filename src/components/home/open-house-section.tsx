@@ -68,13 +68,28 @@ export const OpenHouseSection: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const submission = { ...formData };
     setSubmitting("whatsapp");
     setSuccessMsg("Registering your open house reservation...");
-    await recordLead();
+    setErrorMsg(null);
+    const result = await recordLead();
     setSubmitting(null);
-    setSuccessMsg("Registration saved! Opening WhatsApp...");
+    if (result.success) {
+      setFormData({
+        fullName: "",
+        phone: "",
+        email: "",
+        homeOfInterest: "2-bed",
+        attendees: 1,
+        message: "",
+      });
+      setSuccessMsg("Registration saved! Opening WhatsApp...");
+    } else {
+      setSuccessMsg(null);
+      setErrorMsg("We couldn't save your registration. Your message will still open in WhatsApp; please try again if needed.");
+    }
 
-    const text = `Hello Dangracif Homes, I would like to register for the Fidelis Court Open House.\n\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\nHome of interest: ${formData.homeOfInterest}\nAttendees: ${formData.attendees}\nMessage: ${formData.message || "N/A"}`;
+    const text = `Hello Dangracif Homes, I would like to register for the Fidelis Court Open House.\n\nName: ${submission.fullName}\nPhone: ${submission.phone}\nEmail: ${submission.email}\nHome of interest: ${submission.homeOfInterest}\nAttendees: ${submission.attendees}\nMessage: ${submission.message || "N/A"}`;
     window.open(
       `https://wa.me/2348133187860?text=${encodeURIComponent(text)}`,
       "_blank"
@@ -85,14 +100,29 @@ export const OpenHouseSection: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const submission = { ...formData };
     setSubmitting("email");
     setSuccessMsg("Registering your open house reservation...");
-    await recordLead();
+    setErrorMsg(null);
+    const result = await recordLead();
     setSubmitting(null);
-    setSuccessMsg("Registration saved! Opening your email app...");
+    if (result.success) {
+      setFormData({
+        fullName: "",
+        phone: "",
+        email: "",
+        homeOfInterest: "2-bed",
+        attendees: 1,
+        message: "",
+      });
+      setSuccessMsg("Registration saved! Opening your email app...");
+    } else {
+      setSuccessMsg(null);
+      setErrorMsg("We couldn't save your registration. Your message will still open in your email app; please try again if needed.");
+    }
 
-    const subject = `Open House Registration - ${formData.fullName}`;
-    const body = `Name: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\nHome of interest: ${formData.homeOfInterest}\nAttendees: ${formData.attendees}\nMessage: ${formData.message || "N/A"}`;
+    const subject = `Open House Registration - ${submission.fullName}`;
+    const body = `Name: ${submission.fullName}\nPhone: ${submission.phone}\nEmail: ${submission.email}\nHome of interest: ${submission.homeOfInterest}\nAttendees: ${submission.attendees}\nMessage: ${submission.message || "N/A"}`;
     window.location.href = `mailto:info@dangracif.com?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;

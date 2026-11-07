@@ -18,6 +18,8 @@ import {
   normalizeCareerOpenings,
   type CareerOpening,
 } from "@/constants/careers";
+import { sanitizeBlogContent } from "@/lib/blog-content";
+import { getBlogPostOrderSettings } from "@/lib/db/blog-post-order";
 
 function toPlain<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
@@ -37,45 +39,22 @@ async function requireAuth() {
 
 export async function getBlogPosts(search?: string): Promise<BlogPost[]> {
   await requireAuth();
-  try {
-    const ds = await getDatabaseConnection();
-    const repo = ds.getRepository<BlogPost>("blog_posts");
+  const ds = await getDatabaseConnection();
+  const repo = ds.getRepository<BlogPost>("blog_posts");
+  const { hasSortOrder, order, select } = await getBlogPostOrderSettings(ds);
+  const whereClause = search
+    ? [{ title: ILike(`%${search}%`) }, { summary: ILike(`%${search}%`) }]
+    : {};
 
-    const whereClause = search
-      ? [{ title: ILike(`%${search}%`) }, { summary: ILike(`%${search}%`) }]
-      : {};
+  const posts = await repo.find({ where: whereClause, order, select });
 
-    const posts = await repo.find({
-      where: whereClause,
-      order: { createdAt: "DESC" },
-    });
-
-    return toPlain(posts);
-  } catch (err) {
-    console.warn("Could not fetch DB blog posts for admin, returning fallback:", err);
-    const fallbackPosts: BlogPost[] = [
-      {
-        id: "post-1",
-        title: "Fidelis Court Groundbreaking and Structural Delivery",
-        summary: "Detailed overview of the 9,900 sqm development kickoff at Kubwa F01.",
-        expandedContent: "Detailed overview of the 9,900 sqm development kickoff at Kubwa F01.",
-        imageSrc: "/fidelis-court/Building Toward the Mountain Ridge.png",
-        imageAlt: "Fidelis Court construction site",
-        imageCaption: "Fidelis Court, Kubwa F01",
-        date: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        linkText: "View construction updates",
-        linkHref: "https://youtube.com",
-        published: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
-    return toPlain(fallbackPosts);
-  }
+  return toPlain(
+    posts.map((post) => ({
+      ...post,
+      sortOrder: hasSortOrder ? post.sortOrder : -1,
+      expandedContent: sanitizeBlogContent(post.expandedContent ?? ""),
+    }))
+  );
 }
 
 export async function getBlogPostById(id: string) {
@@ -83,7 +62,12 @@ export async function getBlogPostById(id: string) {
   const ds = await getDatabaseConnection();
   const repo = ds.getRepository<BlogPost>("blog_posts");
   const post = await repo.findOne({ where: { id } });
-  return post ? toPlain(post) : null;
+  return post
+    ? toPlain({
+        ...post,
+        expandedContent: sanitizeBlogContent(post.expandedContent ?? ""),
+      })
+    : null;
 }
 
 export async function saveBlogPost(data: {
@@ -100,8 +84,35 @@ export async function saveBlogPost(data: {
   published?: boolean;
 }) {
   await requireAuth();
+  const linkText = data.linkText?.trim() ?? "";
+  const linkHref = data.linkHref?.trim() ?? "";
+  const expandedContent = sanitizeBlogContent(data.expandedContent ?? "");
+  if ((data.imageSrc?.length ?? 0) > 500) {
+    throw new Error("Cover image URL must be 500 characters or fewer.");
+  }
+  if ((data.imageAlt?.length ?? 0) > 255) {
+    throw new Error("Image alt text must be 255 characters or fewer.");
+  }
+  if ((data.imageCaption?.length ?? 0) > 255) {
+    throw new Error("Image caption must be 255 characters or fewer.");
+  }
+  if (linkText.length > 255 || linkHref.length > 500) {
+    throw new Error("Card link label or URL is too long.");
+  }
+  if (Boolean(linkText) !== Boolean(linkHref)) {
+    throw new Error("Enter both a card link label and URL, or leave both empty.");
+  }
+  if (
+    linkHref &&
+    !/^https?:\/\//i.test(linkHref) &&
+    !(linkHref.startsWith("/") && !linkHref.startsWith("//"))
+  ) {
+    throw new Error("Card link URL must use http(s) or start with a single /.");
+  }
+
   const ds = await getDatabaseConnection();
   const repo = ds.getRepository<BlogPost>("blog_posts");
+  const { hasSortOrder } = await getBlogPostOrderSettings(ds);
 
   let post: BlogPost;
   if (data.id) {
@@ -109,27 +120,77 @@ export async function saveBlogPost(data: {
     if (!existing) throw new Error("Blog post not found");
     post = repo.merge(existing, {
       ...data,
+      expandedContent,
+      linkText,
+      linkHref,
       published: data.published ?? true,
     });
   } else {
+    const lastPost = hasSortOrder
+      ? await repo.findOne({
+          select: { sortOrder: true },
+          order: { sortOrder: "DESC", createdAt: "DESC" },
+        })
+      : null;
     post = repo.create({
       ...data,
       summary: data.summary || "",
-      expandedContent: data.expandedContent || "",
+      expandedContent,
       imageSrc: data.imageSrc || "",
       imageAlt: data.imageAlt || "",
       imageCaption: data.imageCaption || "",
       date: data.date || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      linkText: data.linkText || "Read Article",
-      linkHref: data.linkHref || "#",
+      linkText,
+      linkHref,
+      ...(hasSortOrder && { sortOrder: (lastPost?.sortOrder ?? -1) + 1 }),
       published: data.published ?? true,
     });
   }
 
   const saved = await repo.save(post);
   revalidatePath("/");
+  revalidatePath("/blog");
   revalidatePath("/admin/blog");
-  return toPlain(saved);
+  return toPlain({ ...saved, sortOrder: hasSortOrder ? saved.sortOrder : -1 });
+}
+
+export async function reorderBlogPosts(orderedIds: string[]) {
+  await requireAuth();
+  if (
+    !Array.isArray(orderedIds) ||
+    orderedIds.some((id) => typeof id !== "string" || !id) ||
+    new Set(orderedIds).size !== orderedIds.length
+  ) {
+    throw new Error("Invalid blog post order.");
+  }
+
+  const ds = await getDatabaseConnection();
+  const { hasSortOrder } = await getBlogPostOrderSettings(ds);
+  if (!hasSortOrder) {
+    throw new Error(
+      "Apply the blog ordering migration before rearranging articles."
+    );
+  }
+  await ds.transaction(async (manager) => {
+    const repo = manager.getRepository<BlogPost>("blog_posts");
+    const posts = await repo.find({ lock: { mode: "pessimistic_write" } });
+    const existingIds = new Set(posts.map((post) => post.id));
+    if (
+      orderedIds.length !== existingIds.size ||
+      orderedIds.some((id) => !existingIds.has(id))
+    ) {
+      throw new Error("The blog list changed. Refresh the page and try again.");
+    }
+
+    for (const [sortOrder, id] of orderedIds.entries()) {
+      await repo.update({ id }, { sortOrder });
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath("/admin/blog");
+  return { success: true };
 }
 
 export async function deleteBlogPost(id: string) {
@@ -138,6 +199,7 @@ export async function deleteBlogPost(id: string) {
   const repo = ds.getRepository<BlogPost>("blog_posts");
   await repo.delete({ id });
   revalidatePath("/");
+  revalidatePath("/blog");
   revalidatePath("/admin/blog");
   return { success: true };
 }
@@ -152,6 +214,7 @@ export async function toggleBlogPostPublished(id: string) {
   post.published = !post.published;
   const saved = await repo.save(post);
   revalidatePath("/");
+  revalidatePath("/blog");
   revalidatePath("/admin/blog");
   return toPlain(saved);
 }
@@ -226,6 +289,38 @@ export async function saveFaqItem(data: {
   revalidatePath("/");
   revalidatePath("/admin/faqs");
   return toPlain(saved);
+}
+
+export async function reorderFaqItems(orderedIds: string[]) {
+  await requireAuth();
+  if (
+    !Array.isArray(orderedIds) ||
+    orderedIds.some((id) => typeof id !== "string" || !id) ||
+    new Set(orderedIds).size !== orderedIds.length
+  ) {
+    throw new Error("Invalid FAQ order.");
+  }
+
+  const ds = await getDatabaseConnection();
+  await ds.transaction(async (manager) => {
+    const repo = manager.getRepository<FaqItem>("faq_items");
+    const items = await repo.find({ lock: { mode: "pessimistic_write" } });
+    const existingIds = new Set(items.map((item) => item.id));
+    if (
+      orderedIds.length !== existingIds.size ||
+      orderedIds.some((id) => !existingIds.has(id))
+    ) {
+      throw new Error("The FAQ list changed. Refresh the page and try again.");
+    }
+
+    for (const [sortOrder, id] of orderedIds.entries()) {
+      await repo.update({ id }, { sortOrder });
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/faqs");
+  return { success: true };
 }
 
 export async function deleteFaqItem(id: string) {
@@ -397,10 +492,66 @@ export async function saveSiteConfig(key: string, value: unknown) {
   return { success: true, key, value };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSafeFooterUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  if (!value) return true;
+  return /^https?:\/\//i.test(value);
+}
+
+function isValidFooterConfig(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+
+  const textFields = [
+    "companyName",
+    "registrationNumber",
+    "officeName",
+    "officeAddress",
+    "email",
+    "projectName",
+    "projectAddress",
+  ];
+  if (!textFields.every((field) => typeof value[field] === "string")) {
+    return false;
+  }
+  if (
+    !Array.isArray(value.officePhones) ||
+    !value.officePhones.every((phone) => typeof phone === "string") ||
+    !Array.isArray(value.marketingPhones) ||
+    !value.marketingPhones.every((phone) => typeof phone === "string") ||
+    !Array.isArray(value.socialLinks) ||
+    !value.socialLinks.every(
+      (link) =>
+        isRecord(link) &&
+        ["instagram", "youtube", "facebook", "website"].includes(
+          String(link.platform)
+        ) &&
+        typeof link.label === "string" &&
+        isSafeFooterUrl(link.href)
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function saveMultipleSiteConfigs(
   configs: Record<string, unknown>
 ) {
   await requireAuth();
+  if (
+    Object.prototype.hasOwnProperty.call(configs, "footer") &&
+    !isValidFooterConfig(configs.footer)
+  ) {
+    throw new Error(
+      "Footer items contain invalid data. Check that links use http(s) or a site-relative path."
+    );
+  }
+
   const includesFacilities = Object.prototype.hasOwnProperty.call(
     configs,
     "facilities"
@@ -410,6 +561,20 @@ export async function saveMultipleSiteConfigs(
     : null;
   if (includesFacilities && !facilities) {
     throw new Error("Please provide valid facility names and icons.");
+  }
+  if (Object.prototype.hasOwnProperty.call(configs, "site_image_captions")) {
+    const captions = configs.site_image_captions;
+    if (
+      !isRecord(captions) ||
+      !Object.entries(captions).every(
+        ([, caption]) =>
+          typeof caption === "string" && caption.length <= 255
+      )
+    ) {
+      throw new Error(
+        "Gallery captions must be text no longer than 255 characters."
+      );
+    }
   }
 
   const ds = await getDatabaseConnection();
@@ -432,6 +597,7 @@ export async function saveMultipleSiteConfigs(
 
   revalidatePath("/");
   revalidatePath("/fideliscourt");
+  revalidatePath("/about");
   revalidatePath("/admin/site-config");
   return { success: true };
 }

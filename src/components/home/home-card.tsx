@@ -5,7 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Images, Maximize2, X } from "lucide-react";
 import { HomeModel } from "@/types";
-import { useSiteImageResolver } from "@/components/common/site-images-provider";
+import {
+  useSiteImageCaptionResolver,
+  useSiteImageResolver,
+} from "@/components/common/site-images-provider";
 
 interface HomeCardProps {
   home: HomeModel;
@@ -13,6 +16,7 @@ interface HomeCardProps {
 
 export const HomeCard: React.FC<HomeCardProps> = ({ home }) => {
   const getSiteImage = useSiteImageResolver();
+  const getSiteImageCaption = useSiteImageCaptionResolver();
   const [activePhotoIndex, setActivePhotoIndex] = React.useState<number | null>(
     null
   );
@@ -116,10 +120,6 @@ export const HomeCard: React.FC<HomeCardProps> = ({ home }) => {
                 <h3 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                   {home.title} · {home.price}
                 </h3>
-                <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
-                  Actual site photos — shared project concepts, not
-                  unit-specific photographs.
-                </p>
               </div>
               <button
                 type="button"
@@ -134,7 +134,7 @@ export const HomeCard: React.FC<HomeCardProps> = ({ home }) => {
             <div className="mt-4 sm:mt-5 relative w-full aspect-[16/10] sm:aspect-[16/9.5] rounded-2xl overflow-hidden bg-[#eaf2fc] border border-sky-100/80">
               <Image
                 src={getSiteImage(activePhoto.src)}
-                alt={activePhoto.caption}
+                alt={getSiteImageCaption(activePhoto.src, activePhoto.caption)}
                 fill
                 sizes="(max-width: 1024px) 100vw, 920px"
                 className="object-cover"
@@ -160,7 +160,7 @@ export const HomeCard: React.FC<HomeCardProps> = ({ home }) => {
 
             <p className="text-xs sm:text-sm font-medium text-slate-600 mt-4 text-center">
               {activePhotoIndex + 1} / {home.galleryImages.length} ·{" "}
-              {activePhoto.caption}
+              {getSiteImageCaption(activePhoto.src, activePhoto.caption)}
             </p>
 
             <div className="flex items-center justify-center gap-2.5 sm:gap-3 mt-3">
@@ -174,12 +174,15 @@ export const HomeCard: React.FC<HomeCardProps> = ({ home }) => {
                       ? "border-[#00ABF0] ring-2 ring-[#00ABF0]/30 scale-105"
                       : "border-slate-200 opacity-60 hover:opacity-100"
                   }`}
-                  aria-label={`View photo ${index + 1}: ${photo.caption}`}
+                  aria-label={`View photo ${index + 1}: ${getSiteImageCaption(
+                    photo.src,
+                    photo.caption
+                  )}`}
                   aria-current={index === activePhotoIndex}
                 >
                   <Image
                     src={getSiteImage(photo.src)}
-                    alt={photo.caption}
+                    alt={getSiteImageCaption(photo.src, photo.caption)}
                     fill
                     className="object-cover"
                     sizes="80px"

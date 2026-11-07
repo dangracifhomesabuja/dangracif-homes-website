@@ -61,8 +61,8 @@ export default function HomePageClient() {
           <FaqSection />
         </div>
       </main>
-      <div className="w-full sm:min-h-[calc(100dvh-4.5rem)] lg:h-[calc(100dvh-4.5rem)] lg:min-h-[540px] sm:flex sm:flex-col sm:justify-between hidden">
-        <CtaBanner onCalculateClick={scrollToContact} className="flex-1" />
+      <div className="w-full sm:min-h-[calc(100dvh-4.5rem)] lg:min-h-[540px] sm:flex sm:flex-col sm:justify-between hidden">
+        <CtaBanner onCalculateClick={scrollToContact} className="shrink-0" />
         <Footer compact />
       </div>
       <div className="sm:hidden">

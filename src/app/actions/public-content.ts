@@ -7,6 +7,11 @@ import { FaqItem } from "@/lib/db/entities/FaqItem";
 import { ConstructionMilestone } from "@/lib/db/entities/ConstructionMilestone";
 import { PropertyUnit } from "@/lib/db/entities/PropertyUnit";
 import { SiteConfig } from "@/lib/db/entities/SiteConfig";
+import {
+  DEFAULT_FOOTER_CONFIG,
+  normalizeFooterConfig,
+  type FooterConfig,
+} from "@/constants/footer-config";
 import { BLOG_POSTS } from "@/constants/blog";
 import {
   DEFAULT_FACILITIES,
@@ -21,6 +26,8 @@ import {
   normalizeCareerOpenings,
   type CareerOpening,
 } from "@/constants/careers";
+import { sanitizeBlogContent } from "@/lib/blog-content";
+import { getBlogPostOrderSettings } from "@/lib/db/blog-post-order";
 
 const DEFAULT_MILESTONES = [
   { phase: "Phase 1", date: "Apr 2026", title: "Groundbreaking & site mobilisation" },
@@ -38,17 +45,29 @@ export async function getPublicBlogPosts() {
   try {
     const ds = await getDatabaseConnection();
     const repo = ds.getRepository<BlogPost>("blog_posts");
+    const { order, select } = await getBlogPostOrderSettings(ds);
     const posts = await repo.find({
       where: { published: true },
-      order: { createdAt: "DESC" },
+      order,
+      select,
     });
     if (posts && posts.length > 0) {
-      return toPlain(posts);
+      return toPlain(
+        posts.map((post) => ({
+          ...post,
+          expandedContent: sanitizeBlogContent(post.expandedContent ?? ""),
+        }))
+      );
     }
   } catch (err) {
     console.warn("Could not fetch DB blog posts, falling back to static constants:", err);
   }
-  return toPlain(BLOG_POSTS);
+  return toPlain(
+    BLOG_POSTS.map((post) => ({
+      ...post,
+      expandedContent: sanitizeBlogContent(post.expandedContent),
+    }))
+  );
 }
 
 // 2. Published FAQs
@@ -128,6 +147,28 @@ export async function getPublicSiteConfig() {
   } catch (err) {
     console.warn("Could not fetch site config:", err);
     return {};
+  }
+}
+
+export async function getPublicFooterConfig(): Promise<FooterConfig> {
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository<SiteConfig>("site_config")
+      .findOne({ where: { key: "footer" } });
+    if (!config) return normalizeFooterConfig(DEFAULT_FOOTER_CONFIG);
+
+    let value: unknown;
+    try {
+      value = JSON.parse(config.value);
+    } catch (error) {
+      console.warn("Could not parse configured footer items; using defaults:", error);
+      return normalizeFooterConfig(DEFAULT_FOOTER_CONFIG);
+    }
+
+    return normalizeFooterConfig(value);
+  } catch (err) {
+    console.warn("Could not fetch footer items; using defaults:", err);
+    return normalizeFooterConfig(DEFAULT_FOOTER_CONFIG);
   }
 }
 

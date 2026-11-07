@@ -4,17 +4,20 @@ import { SiteConfig } from "@/lib/db/entities/SiteConfig";
 
 export async function getPublicSiteOverrides(): Promise<{
   images: Record<string, string>;
+  imageCaptions: Record<string, string>;
   brochureUrl: string;
   youtubeUrl: string;
 }> {
   try {
     const dataSource = await getDatabaseConnection();
     const overrides: Record<string, string> = {};
+    const imageCaptions: Record<string, string> = {};
     const configs = await dataSource
       .getRepository<SiteConfig>("site_config")
       .find({
         where: [
           { key: "site_images" },
+          { key: "site_image_captions" },
           { key: "brochure_url" },
           { key: "estate" },
         ],
@@ -42,12 +45,17 @@ export async function getPublicSiteOverrides(): Promise<{
         continue;
       }
       for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === "string") overrides[key] = value;
+        if (typeof value !== "string") continue;
+        if (config.key === "site_image_captions") {
+          imageCaptions[key] = value;
+        } else {
+          overrides[key] = value;
+        }
       }
     }
-    return { images: overrides, brochureUrl, youtubeUrl };
+    return { images: overrides, imageCaptions, brochureUrl, youtubeUrl };
   } catch (error) {
     console.warn("Could not load site image overrides:", error);
-    return { images: {}, brochureUrl: "", youtubeUrl: "" };
+    return { images: {}, imageCaptions: {}, brochureUrl: "", youtubeUrl: "" };
   }
 }

@@ -160,7 +160,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
     if (pathname.startsWith("/admin/timeline"))
       return "Update construction milestones and development phases for Fidelis Court.";
     if (pathname.startsWith("/admin/site-config"))
-      return "Manage website details, section images, and Fidelis Court facilities.";
+      return "Manage website details, section images, Fidelis Court facilities, and footer items.";
     if (pathname.startsWith("/admin/projects"))
       return "Manage the developments displayed on the public Other Projects page.";
     if (pathname.startsWith("/admin/careers"))

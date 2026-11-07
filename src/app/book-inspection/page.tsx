@@ -16,45 +16,79 @@ export default function BookInspectionPage() {
   const [unitType, setUnitType] = React.useState("2-bed");
   const [preferredDate, setPreferredDate] = React.useState("");
   const [message, setMessage] = React.useState("");
+  const [submitting, setSubmitting] = React.useState<"whatsapp" | "email" | null>(null);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = React.useState<string | null>(null);
 
-  const getActiveUnitLabel = () => {
-    const found = UNIT_OPTIONS.find((u) => u.value === unitType);
-    return found ? found.label : "2-Bedroom Apartment — ₦82,500,000";
-  };
-
-  const recordLead = () => {
-    submitLeadInquiry({
-      type: "inspection",
-      fullName: fullName.trim() || "Website Visitor",
-      phone: phone.trim() || "N/A",
-      email: email.trim() || "N/A",
-      unitType,
-      preferredDate: preferredDate || undefined,
-      message: message.trim() || undefined,
-    }).catch((err) => {
+  const recordLead = async () => {
+    try {
+      return await submitLeadInquiry({
+        type: "inspection",
+        fullName: fullName.trim() || "Website Visitor",
+        phone: phone.trim() || "N/A",
+        email: email.trim() || "N/A",
+        unitType,
+        preferredDate: preferredDate || undefined,
+        message: message.trim() || undefined,
+      });
+    } catch (err) {
       console.warn("Could not record lead:", err);
-    });
+      return { success: false };
+    }
   };
 
-  const handleWhatsApp = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFullName("");
+    setPhone("");
+    setEmail("");
+    setUnitType("2-bed");
+    setPreferredDate("");
+    setMessage("");
+  };
+
+  const handleWhatsApp = async (e: React.FormEvent) => {
     e.preventDefault();
-    recordLead();
-    const text = `Hello Dangracif Homes, I would like to book an inspection for Fidelis Court.\n\nFull Name: ${fullName || "N/A"
-      }\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nUnit: ${getActiveUnitLabel()}\nPreferred Date: ${preferredDate || "N/A"
-      }\nMessage: ${message || "N/A"}`;
+    const submission = { fullName, phone, email, unitType, preferredDate, message };
+    setSubmitting("whatsapp");
+    setSubmissionError(null);
+    setSubmissionSuccess(null);
+    const result = await recordLead();
+    setSubmitting(null);
+    if (result.success) {
+      resetForm();
+      setSubmissionSuccess("Inspection request recorded successfully. Opening WhatsApp...");
+    } else {
+      setSubmissionError("We couldn't save your inspection request. Your message will still open in WhatsApp; please try again if needed.");
+    }
+    const selectedUnit = UNIT_OPTIONS.find((unit) => unit.value === submission.unitType);
+    const text = `Hello Dangracif Homes, I would like to book an inspection for Fidelis Court.\n\nFull Name: ${submission.fullName || "N/A"
+      }\nPhone: ${submission.phone || "N/A"}\nEmail: ${submission.email || "N/A"}\nUnit: ${selectedUnit?.label ?? "2-Bedroom Apartment — ₦82,500,000"}\nPreferred Date: ${submission.preferredDate || "N/A"
+      }\nMessage: ${submission.message || "N/A"}`;
     window.open(
       `https://wa.me/2348133187860?text=${encodeURIComponent(text)}`,
       "_blank"
     );
   };
 
-  const handleEmail = (e: React.FormEvent) => {
+  const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    recordLead();
-    const subject = `Inspection Booking - ${fullName || "Fidelis Court"}`;
-    const body = `Request: Book an Inspection\n\nFull Name: ${fullName || "N/A"
-      }\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nUnit: ${getActiveUnitLabel()}\nPreferred Date: ${preferredDate || "N/A"
-      }\nMessage: ${message || "N/A"}`;
+    const submission = { fullName, phone, email, unitType, preferredDate, message };
+    setSubmitting("email");
+    setSubmissionError(null);
+    setSubmissionSuccess(null);
+    const result = await recordLead();
+    setSubmitting(null);
+    if (result.success) {
+      resetForm();
+      setSubmissionSuccess("Inspection request recorded successfully. Opening your email app...");
+    } else {
+      setSubmissionError("We couldn't save your inspection request. Your message will still open in your email app; please try again if needed.");
+    }
+    const selectedUnit = UNIT_OPTIONS.find((unit) => unit.value === submission.unitType);
+    const subject = `Inspection Booking - ${submission.fullName || "Fidelis Court"}`;
+    const body = `Request: Book an Inspection\n\nFull Name: ${submission.fullName || "N/A"
+      }\nPhone: ${submission.phone || "N/A"}\nEmail: ${submission.email || "N/A"}\nUnit: ${selectedUnit?.label ?? "2-Bedroom Apartment — ₦82,500,000"}\nPreferred Date: ${submission.preferredDate || "N/A"
+      }\nMessage: ${submission.message || "N/A"}`;
     window.location.href = `mailto:info@dangracif.com?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
@@ -78,6 +112,12 @@ export default function BookInspectionPage() {
 
           {/* Form */}
           <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            {submissionError && (
+              <p role="alert" className="text-sm text-red-700">{submissionError}</p>
+            )}
+            {submissionSuccess && (
+              <p role="status" className="text-sm text-green-700">{submissionSuccess}</p>
+            )}
             {/* Full name */}
             <div>
               <label className="text-sm font-semibold text-slate-800 mb-1.5 block">
@@ -152,20 +192,22 @@ export default function BookInspectionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3">
               <button
                 type="button"
+                disabled={submitting !== null}
                 onClick={handleWhatsApp}
-                className="w-full bg-[#0754C6] hover:bg-[#0648AB] text-white font-semibold py-3.5 px-6 rounded-full flex items-center justify-center gap-2.5 transition-all shadow-md shadow-[#0754C6]/20 cursor-pointer"
+                className="w-full bg-[#0754C6] hover:bg-[#0648AB] disabled:opacity-60 text-white font-semibold py-3.5 px-6 rounded-full flex items-center justify-center gap-2.5 transition-all shadow-md shadow-[#0754C6]/20 cursor-pointer"
               >
                 <MessageCircle className="w-5 h-5" />
-                <span>Send via WhatsApp</span>
+                <span>{submitting === "whatsapp" ? "Saving..." : "Send via WhatsApp"}</span>
               </button>
 
               <button
                 type="button"
+                disabled={submitting !== null}
                 onClick={handleEmail}
-                className="w-full bg-white hover:bg-blue-50/50 text-[#00ABF0] border-2 border-[#00ABF0] font-semibold py-3.5 px-6 rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                className="w-full bg-white hover:bg-blue-50/50 disabled:opacity-60 text-[#00ABF0] border-2 border-[#00ABF0] font-semibold py-3.5 px-6 rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer"
               >
                 <Mail className="w-5 h-5 text-[#00ABF0]" />
-                <span>Send via Email</span>
+                <span>{submitting === "email" ? "Saving..." : "Send via Email"}</span>
               </button>
             </div>
           </form>

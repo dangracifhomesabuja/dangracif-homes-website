@@ -20,6 +20,7 @@ import {
   ListChecks,
   Plus,
   Trash2,
+  Link2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveMultipleSiteConfigs } from "@/app/actions/admin-content";
@@ -39,6 +40,20 @@ import {
   formatDatePickerValue,
   parseDatePickerValue,
 } from "@/components/ui/date-picker";
+import {
+  normalizeFooterConfig,
+  type FooterConfig,
+  type FooterSocialLink,
+} from "@/constants/footer-config";
+
+type FooterTextField =
+  | "companyName"
+  | "registrationNumber"
+  | "officeName"
+  | "officeAddress"
+  | "email"
+  | "projectName"
+  | "projectAddress";
 
 interface AdminSiteConfigClientProps {
   initialConfigs: Record<string, unknown>;
@@ -81,9 +96,17 @@ export function AdminSiteConfigClient({
   initialTab,
 }: AdminSiteConfigClientProps) {
   const [activeTab, setActiveTab] = React.useState<
-    "estate" | "stats" | "contact" | "open_house" | "facilities" | "images"
+    | "estate"
+    | "stats"
+    | "contact"
+    | "open_house"
+    | "facilities"
+    | "images"
+    | "footer"
   >(
-    initialTab === "images" || initialTab === "facilities"
+    initialTab === "images" ||
+      initialTab === "facilities" ||
+      initialTab === "footer"
       ? initialTab
       : "estate"
   );
@@ -100,6 +123,10 @@ export function AdminSiteConfigClient({
   const shouldScrollToNewFacility = React.useRef(false);
   const newFacilityInputRef = React.useRef<HTMLInputElement>(null);
   const imageConfig = getConfigGroup(initialConfigs, "site_images");
+  const imageCaptionConfig = getConfigGroup(
+    initialConfigs,
+    "site_image_captions"
+  );
   const [siteImages, setSiteImages] = React.useState<Record<string, string>>(
     () => {
       const images: Record<string, string> = {};
@@ -109,10 +136,22 @@ export function AdminSiteConfigClient({
       return images;
     }
   );
+  const [siteImageCaptions, setSiteImageCaptions] = React.useState<
+    Record<string, string>
+  >(() => {
+    const captions: Record<string, string> = {};
+    for (const [key, value] of Object.entries(imageCaptionConfig || {})) {
+      if (typeof value === "string") captions[key] = value;
+    }
+    return captions;
+  });
   const [brochureUrl, setBrochureUrl] = React.useState(
     typeof initialConfigs.brochure_url === "string"
       ? initialConfigs.brochure_url
       : ""
+  );
+  const [footer, setFooter] = React.useState<FooterConfig>(() =>
+    normalizeFooterConfig(initialConfigs.footer)
   );
   const estateConfig = getConfigGroup(initialConfigs, "estate");
   const statsConfig = getConfigGroup(initialConfigs, "stats");
@@ -211,7 +250,9 @@ export function AdminSiteConfigClient({
         open_house: openHouse,
         facilities,
         site_images: siteImages,
+        site_image_captions: siteImageCaptions,
         brochure_url: brochureUrl,
+        footer,
       });
       toast.success("Site changes saved.");
     } catch (err: unknown) {
@@ -232,7 +273,50 @@ export function AdminSiteConfigClient({
     { id: "open_house", label: "Open House Banner", icon: CalendarCheck },
     { id: "facilities", label: "Facilities & Services", icon: ListChecks },
     { id: "images", label: "Site Images", icon: Images },
+    { id: "footer", label: "Footer Items", icon: Link2 },
   ] as const;
+
+  const updateFooterField = (field: FooterTextField, value: string) => {
+    setFooter((current) => ({ ...current, [field]: value }));
+  };
+  const updateFooterPhone = (
+    field: "officePhones" | "marketingPhones",
+    index: number,
+    value: string
+  ) => {
+    setFooter((current) => ({
+      ...current,
+      [field]: current[field].map((phone, phoneIndex) =>
+        phoneIndex === index ? value : phone
+      ),
+    }));
+  };
+  const updateFooterSocialLink = (
+    index: number,
+    update: Partial<FooterSocialLink>
+  ) => {
+    setFooter((current) => ({
+      ...current,
+      socialLinks: current.socialLinks.map((link, linkIndex) =>
+        linkIndex === index ? { ...link, ...update } : link
+      ),
+    }));
+  };
+  const footerTextField = (
+    label: string,
+    field: FooterTextField,
+    type = "text"
+  ) => (
+    <label className="block text-xs font-bold text-slate-700">
+      {label}
+      <input
+        type={type}
+        value={footer[field]}
+        onChange={(event) => updateFooterField(field, event.target.value)}
+        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+      />
+    </label>
+  );
 
   return (
     <form onSubmit={handleSaveAll} className="space-y-6">
@@ -749,6 +833,183 @@ export function AdminSiteConfigClient({
         </section>
       )}
 
+      {activeTab === "footer" && (
+        <section className="space-y-4">
+          <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+            <h3 className="text-sm font-bold text-slate-900">Footer details</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Update the company details, contact information, and marketing partner shown in the website footer.
+            </p>
+            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+              {footerTextField("Company name", "companyName")}
+              {footerTextField("Registration number", "registrationNumber")}
+              {footerTextField("Office name", "officeName")}
+              {footerTextField("Office address", "officeAddress")}
+              {footerTextField("Footer email", "email", "email")}
+              {footerTextField("Project name", "projectName")}
+              {footerTextField("Project address", "projectAddress")}
+            </div>
+          </div>
+
+          {(
+            [
+              ["officePhones", "Office phone numbers"],
+              ["marketingPhones", "Marketing partner phone numbers"],
+            ] as const
+          ).map(([field, title]) => (
+            <div
+              key={field}
+              className="rounded-lg border border-slate-200/80 bg-white p-6"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    These numbers appear as click-to-call links.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFooter((current) => ({
+                      ...current,
+                      [field]: [...current[field], ""],
+                    }))
+                  }
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0754C6] px-3 py-2 text-xs font-bold text-white hover:bg-[#0648AB]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add phone
+                </button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {footer[field].map((phone, index) => (
+                  <div
+                    key={`${field}-${index}`}
+                    className="flex items-center gap-3"
+                  >
+                    <input
+                      type="tel"
+                      value={phone}
+                      aria-label={`${title} ${index + 1}`}
+                      onChange={(event) =>
+                        updateFooterPhone(field, index, event.target.value)
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFooter((current) => ({
+                          ...current,
+                          [field]: current[field].filter(
+                            (_, phoneIndex) => phoneIndex !== index
+                          ),
+                        }))
+                      }
+                      aria-label={`Remove ${title.toLowerCase()} ${index + 1}`}
+                      className="rounded-lg border border-red-100 p-2.5 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Social links</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Choose an icon and set the name and destination for each social link.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setFooter((current) => ({
+                    ...current,
+                    socialLinks: [
+                      ...current.socialLinks,
+                      { platform: "website", label: "", href: "" },
+                    ],
+                  }))
+                }
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0754C6] px-3 py-2 text-xs font-bold text-white hover:bg-[#0648AB]"
+              >
+                <Plus className="h-4 w-4" />
+                Add social link
+              </button>
+            </div>
+            <div className="mt-4 space-y-3">
+              {footer.socialLinks.map((link, index) => (
+                <div
+                  key={`social-${index}`}
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_1fr_1fr_auto]"
+                >
+                  <select
+                    value={link.platform}
+                    aria-label={`Social link ${index + 1} icon`}
+                    onChange={(event) =>
+                      updateFooterSocialLink(
+                        index,
+                        {
+                          platform: event.target
+                            .value as FooterSocialLink["platform"],
+                        }
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                  >
+                    <option value="instagram">Instagram</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="website">Website</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={link.label}
+                    aria-label={`Social link ${index + 1} label`}
+                    placeholder="Link label"
+                    onChange={(event) =>
+                      updateFooterSocialLink(index, { label: event.target.value })
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                  />
+                  <input
+                    type="url"
+                    value={link.href}
+                    aria-label={`Social link ${index + 1} URL`}
+                    placeholder="https://..."
+                    onChange={(event) =>
+                      updateFooterSocialLink(index, { href: event.target.value })
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium focus:border-[#0754C6] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFooter((current) => ({
+                        ...current,
+                        socialLinks: current.socialLinks.filter(
+                          (_, linkIndex) => linkIndex !== index
+                        ),
+                      }))
+                    }
+                    aria-label={`Remove social link ${index + 1}`}
+                    className="justify-self-start rounded-lg border border-red-100 p-2.5 text-red-600 hover:bg-red-50 sm:justify-self-auto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {activeTab === "images" && (
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -782,23 +1043,42 @@ export function AdminSiteConfigClient({
               </summary>
               <div className="grid gap-4 border-t border-slate-100 p-4 sm:grid-cols-2 lg:grid-cols-3">
                 {group.images.map((image) => (
-                  <ImageUploader
-                    key={image.src}
-                    label={image.label}
-                    value={siteImages[image.src] || image.src}
-                    folder="site-images"
-                    onChange={(url) =>
-                      setSiteImages((current) => {
-                        const next = { ...current };
-                        if (url && url !== image.src) {
-                          next[image.src] = url;
-                        } else {
-                          delete next[image.src];
-                        }
-                        return next;
-                      })
-                    }
-                  />
+                  <div key={image.src} className="space-y-3">
+                    <ImageUploader
+                      label={image.label}
+                      hint={"hint" in image ? image.hint : undefined}
+                      value={siteImages[image.src] || image.src}
+                      folder="site-images"
+                      onChange={(url) =>
+                        setSiteImages((current) => {
+                          const next = { ...current };
+                          if (url && url !== image.src) {
+                            next[image.src] = url;
+                          } else {
+                            delete next[image.src];
+                          }
+                          return next;
+                        })
+                      }
+                    />
+                    {"caption" in image && (
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Gallery caption
+                        <input
+                          type="text"
+                          maxLength={255}
+                          value={siteImageCaptions[image.src] ?? image.caption}
+                          onChange={(event) =>
+                            setSiteImageCaptions((current) => ({
+                              ...current,
+                              [image.src]: event.target.value,
+                            }))
+                          }
+                          className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-normal focus:border-[#0754C6] focus:outline-hidden focus:ring-2 focus:ring-[#0754C6]/20"
+                        />
+                      </label>
+                    )}
+                  </div>
                 ))}
               </div>
             </details>

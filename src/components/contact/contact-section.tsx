@@ -151,13 +151,29 @@ export const ContactSection: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const submissionDetails = details;
     setSubmitting("whatsapp");
     setSuccessMsg("Saving your inquiry...");
-    await recordLeadInquiry();
+    setErrorMsg(null);
+    const result = await recordLeadInquiry();
     setSubmitting(null);
-    setSuccessMsg("Inquiry recorded successfully! Opening WhatsApp...");
+    if (result.success) {
+      setFullName("");
+      setPhone("");
+      setEmail("");
+      setUnitType("2-bed");
+      setPreferredDate("");
+      setNumberOfUnits("1");
+      setPaymentOption("Outright payment");
+      setAttendees("1");
+      setMessage("");
+      setSuccessMsg("Inquiry recorded successfully! Opening WhatsApp...");
+    } else {
+      setSuccessMsg(null);
+      setErrorMsg("We couldn't save your inquiry. Your message will still open in WhatsApp; please try again if needed.");
+    }
 
-    const text = `Hello Dangracif Homes,\n\n${details.summary}`;
+    const text = `Hello Dangracif Homes,\n\n${submissionDetails.summary}`;
     window.open(
       `https://wa.me/2348133187860?text=${encodeURIComponent(text)}`,
       "_blank"
@@ -168,15 +184,31 @@ export const ContactSection: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const submissionDetails = details;
     setSubmitting("email");
     setSuccessMsg("Saving your inquiry...");
-    await recordLeadInquiry();
+    setErrorMsg(null);
+    const result = await recordLeadInquiry();
     setSubmitting(null);
-    setSuccessMsg("Inquiry recorded successfully! Opening your email app...");
+    if (result.success) {
+      setFullName("");
+      setPhone("");
+      setEmail("");
+      setUnitType("2-bed");
+      setPreferredDate("");
+      setNumberOfUnits("1");
+      setPaymentOption("Outright payment");
+      setAttendees("1");
+      setMessage("");
+      setSuccessMsg("Inquiry recorded successfully! Opening your email app...");
+    } else {
+      setSuccessMsg(null);
+      setErrorMsg("We couldn't save your inquiry. Your message will still open in your email app; please try again if needed.");
+    }
 
     window.location.href = `mailto:info@dangracif.com?subject=${encodeURIComponent(
-      details.subject
-    )}&body=${encodeURIComponent(details.summary)}`;
+      submissionDetails.subject
+    )}&body=${encodeURIComponent(submissionDetails.summary)}`;
   };
 
   return (

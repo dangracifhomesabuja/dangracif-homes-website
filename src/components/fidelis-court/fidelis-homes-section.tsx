@@ -4,13 +4,15 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Images, Maximize2, X } from "lucide-react";
-import { useSiteImageResolver } from "@/components/common/site-images-provider";
+import {
+  useSiteImageCaptionResolver,
+  useSiteImageResolver,
+} from "@/components/common/site-images-provider";
 
 interface UnitModel {
   id: string;
   title: string;
   subtitle: string;
-  disclaimer: string;
   unitsCount: number;
   price: string;
   mainImage: string;
@@ -25,8 +27,6 @@ const FIDELIS_UNITS: UnitModel[] = [
     id: "1-bed",
     title: "1-Bedroom Apartment",
     subtitle: "Compact, efficient city living",
-    disclaimer:
-      "Actual site photos — shared project concepts, not unit-specific photographs. Apartment interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 32,
     price: "₦55.5M",
     mainImage: "/fidelis-court/Bright Renovation Room with Window Views.png",
@@ -49,8 +49,6 @@ const FIDELIS_UNITS: UnitModel[] = [
     id: "2-bed",
     title: "2-Bedroom Apartment",
     subtitle: "Ideal for young families & professionals",
-    disclaimer:
-      "Actual site photos — shared project concepts, not unit-specific photographs. Apartment interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 48,
     price: "₦82.5M",
     mainImage: "/fidelis-court/Sunlit Unfinished Room Renovation.png",
@@ -73,8 +71,6 @@ const FIDELIS_UNITS: UnitModel[] = [
     id: "4-bed-terrace",
     title: "4-Bedroom Terrace (Shell)",
     subtitle: "Shell option — finish to your taste",
-    disclaimer:
-      "Actual site photos — shared project concepts, not unit-specific photographs. Terrace interiors illustrate possible finishing, not the shell specification.",
     unitsCount: 8,
     price: "₦127.5M",
     mainImage: "/fidelis-court/Vibrant Mid-Rise Construction Site.png",
@@ -103,6 +99,7 @@ export const FidelisHomesSection: React.FC<FidelisHomesSectionProps> = ({
   onReserveUnit,
 }) => {
   const getSiteImage = useSiteImageResolver();
+  const getSiteImageCaption = useSiteImageCaptionResolver();
   const [activeGallery, setActiveGallery] = React.useState<{
     unitIndex: number;
     photoIndex: number;
@@ -309,9 +306,6 @@ export const FidelisHomesSection: React.FC<FidelisHomesSectionProps> = ({
                 <h3 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                   {activeUnit.title} · {activeUnit.price}
                 </h3>
-                <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
-                  {activeUnit.disclaimer}
-                </p>
               </div>
 
               {/* Close Button */}
@@ -329,7 +323,7 @@ export const FidelisHomesSection: React.FC<FidelisHomesSectionProps> = ({
             <div className="mt-4 sm:mt-5 relative w-full aspect-[16/10] sm:aspect-[16/9.5] rounded-2xl overflow-hidden bg-[#eaf2fc] border border-sky-100/80">
               <Image
                 src={getSiteImage(activePhoto.src)}
-                alt={activePhoto.caption}
+                alt={getSiteImageCaption(activePhoto.src, activePhoto.caption)}
                 fill
                 sizes="(max-width: 1024px) 100vw, 920px"
                 className="object-cover"
@@ -360,7 +354,7 @@ export const FidelisHomesSection: React.FC<FidelisHomesSectionProps> = ({
             {/* Counter & Caption Text */}
             <p className="text-xs sm:text-sm font-medium text-slate-600 mt-4 text-center">
               {activeGallery.photoIndex + 1} / {activeUnit.galleryImages.length}{" "}
-              · {activePhoto.caption}
+              · {getSiteImageCaption(activePhoto.src, activePhoto.caption)}
             </p>
 
             {/* Thumbnails Row */}
@@ -384,7 +378,7 @@ export const FidelisHomesSection: React.FC<FidelisHomesSectionProps> = ({
                   >
                     <Image
                       src={getSiteImage(img.src)}
-                      alt={img.caption}
+                      alt={getSiteImageCaption(img.src, img.caption)}
                       fill
                       className="object-cover"
                       sizes="80px"
