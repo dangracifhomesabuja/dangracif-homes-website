@@ -9,25 +9,40 @@ const SiteImagesContext = React.createContext<{
   overrides: SiteImageOverrides;
   imageCaptions: SiteImageCaptions;
   brochureUrl: string;
+  termsConditionsUrl: string;
   youtubeUrl: string;
-}>({ overrides: {}, imageCaptions: {}, brochureUrl: "", youtubeUrl: "" });
+}>({
+  overrides: {},
+  imageCaptions: {},
+  brochureUrl: "",
+  termsConditionsUrl: "",
+  youtubeUrl: "",
+});
 
 export function SiteImagesProvider({
   overrides,
   imageCaptions,
   brochureUrl,
+  termsConditionsUrl,
   youtubeUrl,
   children,
 }: {
   overrides: SiteImageOverrides;
   imageCaptions: SiteImageCaptions;
   brochureUrl: string;
+  termsConditionsUrl: string;
   youtubeUrl: string;
   children: React.ReactNode;
 }) {
   return (
     <SiteImagesContext.Provider
-      value={{ overrides, imageCaptions, brochureUrl, youtubeUrl }}
+      value={{
+        overrides,
+        imageCaptions,
+        brochureUrl,
+        termsConditionsUrl,
+        youtubeUrl,
+      }}
     >
       {children}
     </SiteImagesContext.Provider>
@@ -64,4 +79,11 @@ export function useBrochureUrl() {
 
 export function useYoutubeUrl() {
   return React.useContext(SiteImagesContext).youtubeUrl;
+}
+
+export function useTermsConditionsUrl() {
+  const { termsConditionsUrl } = React.useContext(SiteImagesContext);
+  return termsConditionsUrl
+    ? "/api/terms-and-conditions"
+    : "/Dangracif-Offer-Letter-and-Addendum.pdf";
 }

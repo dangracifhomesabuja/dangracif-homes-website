@@ -6,6 +6,7 @@ export async function getPublicSiteOverrides(): Promise<{
   images: Record<string, string>;
   imageCaptions: Record<string, string>;
   brochureUrl: string;
+  termsConditionsUrl: string;
   youtubeUrl: string;
 }> {
   try {
@@ -19,16 +20,25 @@ export async function getPublicSiteOverrides(): Promise<{
           { key: "site_images" },
           { key: "site_image_captions" },
           { key: "brochure_url" },
+          { key: "terms_conditions_url" },
           { key: "estate" },
         ],
       });
 
     let brochureUrl = "";
+    let termsConditionsUrl = "";
     let youtubeUrl = "";
     for (const config of configs) {
-      if (config.key === "brochure_url") {
+      if (
+        config.key === "brochure_url" ||
+        config.key === "terms_conditions_url"
+      ) {
         if (config.value.startsWith("https://res.cloudinary.com/")) {
-          brochureUrl = config.value;
+          if (config.key === "brochure_url") {
+            brochureUrl = config.value;
+          } else {
+            termsConditionsUrl = config.value;
+          }
         }
         continue;
       }
@@ -53,9 +63,21 @@ export async function getPublicSiteOverrides(): Promise<{
         }
       }
     }
-    return { images: overrides, imageCaptions, brochureUrl, youtubeUrl };
+    return {
+      images: overrides,
+      imageCaptions,
+      brochureUrl,
+      termsConditionsUrl,
+      youtubeUrl,
+    };
   } catch (error) {
     console.warn("Could not load site image overrides:", error);
-    return { images: {}, imageCaptions: {}, brochureUrl: "", youtubeUrl: "" };
+    return {
+      images: {},
+      imageCaptions: {},
+      brochureUrl: "",
+      termsConditionsUrl: "",
+      youtubeUrl: "",
+    };
   }
 }

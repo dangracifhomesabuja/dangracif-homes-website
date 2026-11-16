@@ -16,6 +16,7 @@ import { UpdatePropertyUnitPrices1732000000000 } from "./migrations/173200000000
 import { SetPropertyUnitsAvailable1733000000000 } from "./migrations/1733000000000-SetPropertyUnitsAvailable";
 import { RemoveSeededSampleInquiries1734000000000 } from "./migrations/1734000000000-RemoveSeededSampleInquiries";
 import { AddBlogPostSortOrder1735000000000 } from "./migrations/1735000000000-AddBlogPostSortOrder";
+import { UpdateFidelisCourtMilestones1736000000000 } from "./migrations/1736000000000-UpdateFidelisCourtMilestones";
 
 // Load environment variables for CLI usage
 if (typeof process !== "undefined" && process.env) {
@@ -91,6 +92,7 @@ export const AppDataSource: DataSource =
       SetPropertyUnitsAvailable1733000000000,
       RemoveSeededSampleInquiries1734000000000,
       AddBlogPostSortOrder1735000000000,
+      UpdateFidelisCourtMilestones1736000000000,
     ],
     subscribers: [],
   });

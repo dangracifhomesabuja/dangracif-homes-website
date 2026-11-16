@@ -368,7 +368,7 @@ export async function getMilestones(): Promise<ConstructionMilestone[]> {
       {
         id: "m-1",
         phaseNumber: 1,
-        date: "Apr 2026",
+        date: "01 December 2025",
         title: "Groundbreaking & site mobilisation",
         createdAt: fallbackDate,
         updatedAt: fallbackDate,
@@ -376,7 +376,7 @@ export async function getMilestones(): Promise<ConstructionMilestone[]> {
       {
         id: "m-2",
         phaseNumber: 2,
-        date: "Oct 2026 – Jun 2027",
+        date: "January 2026 – May 2027",
         title: "Substructure & superstructure works",
         createdAt: fallbackDate,
         updatedAt: fallbackDate,

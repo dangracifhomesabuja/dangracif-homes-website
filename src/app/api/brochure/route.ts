@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDatabaseConnection } from "@/lib/db/data-source";
 import { SiteConfig } from "@/lib/db/entities/SiteConfig";
-import { createBrochureDownloadUrl } from "@/lib/cloudinary";
+import { createPdfDownloadUrl } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function GET() {
       );
     }
 
-    const downloadUrl = createBrochureDownloadUrl(config.value);
+    const downloadUrl = createPdfDownloadUrl(config.value, "brochure");
     return NextResponse.redirect(downloadUrl);
   } catch (error) {
     console.error("Could not create brochure download:", error);

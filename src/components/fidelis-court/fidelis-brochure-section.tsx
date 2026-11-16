@@ -2,7 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Download, CalendarCheck, Tag, ArrowRight } from "lucide-react";
+import {
+  FileText,
+  Download,
+  CalendarCheck,
+  Tag,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBrochureUrl } from "@/components/common/site-images-provider";
 

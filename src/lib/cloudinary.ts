@@ -45,7 +45,7 @@ export async function uploadMediaBuffer(
   });
 }
 
-export function createBrochureDownloadUrl(url: string): string {
+export function createPdfDownloadUrl(url: string, documentName: string): string {
   if (!isCloudinaryConfigured || !cloudName) {
     throw new Error("Cloudinary is not configured.");
   }
@@ -54,7 +54,7 @@ export function createBrochureDownloadUrl(url: string): string {
   try {
     parsedUrl = new URL(url);
   } catch {
-    throw new Error("The brochure URL is invalid.");
+    throw new Error(`The ${documentName} URL is invalid.`);
   }
 
   const pathPrefix = `/${cloudName}/raw/upload/`;
@@ -63,13 +63,13 @@ export function createBrochureDownloadUrl(url: string): string {
     parsedUrl.hostname !== "res.cloudinary.com" ||
     !parsedUrl.pathname.startsWith(pathPrefix)
   ) {
-    throw new Error("The brochure must be uploaded to this Cloudinary account.");
+    throw new Error(`The ${documentName} must be uploaded to this Cloudinary account.`);
   }
 
   const assetPath = parsedUrl.pathname.slice(pathPrefix.length);
   const publicId = assetPath.replace(/^v\d+\//, "");
   if (!publicId || !publicId.toLowerCase().endsWith(".pdf")) {
-    throw new Error("The Cloudinary brochure URL is missing its asset ID.");
+    throw new Error(`The Cloudinary ${documentName} URL is missing its asset ID.`);
   }
 
   return cloudinary.utils.private_download_url(

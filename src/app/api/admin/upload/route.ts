@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
       "image/gif",
     ];
 
-    if (isPdf && folder !== "brochures") {
+    if (isPdf && !["brochures", "terms-and-conditions"].includes(folder)) {
       return NextResponse.json(
-        { error: "PDF files can only be uploaded to the brochure folder." },
+        { error: "PDF files can only be uploaded to the brochure or terms and conditions folders." },
         { status: 400 }
       );
     }
@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
       buffer,
       safeFolder,
       isPdf ? "raw" : "image",
-      isPdf ? `fidelis-court-brochure-${Date.now()}.pdf` : undefined
+      isPdf
+        ? `fidelis-court-${folder}-${Date.now()}.pdf`
+        : undefined
     );
 
     return NextResponse.json({

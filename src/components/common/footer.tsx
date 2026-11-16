@@ -12,7 +12,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublicFooterConfig } from "@/app/actions/public-content";
+import {
+  getPublicFooterConfig,
+  getPublicTermsConditionsUrl,
+} from "@/app/actions/public-content";
 import {
   DEFAULT_FOOTER_CONFIG,
   normalizeFooterConfig,
@@ -20,6 +23,9 @@ import {
 } from "@/constants/footer-config";
 
 let footerConfigRequest: ReturnType<typeof getPublicFooterConfig> | undefined;
+let termsConditionsUrlRequest: ReturnType<
+  typeof getPublicTermsConditionsUrl
+> | undefined;
 
 function getSocialIcon(platform: FooterSocialLink["platform"]) {
   if (platform === "instagram") return Instagram;
@@ -35,6 +41,9 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ compact = false, className }) => {
   const [footer, setFooter] = React.useState(DEFAULT_FOOTER_CONFIG);
+  const [termsConditionsUrl, setTermsConditionsUrl] = React.useState(
+    "/Dangracif-Offer-Letter-and-Addendum.pdf"
+  );
 
   React.useEffect(() => {
     let isMounted = true;
@@ -48,6 +57,25 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
       .catch((error: unknown) => {
         footerConfigRequest = undefined;
         console.warn("Could not load footer items:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    termsConditionsUrlRequest ??= getPublicTermsConditionsUrl().finally(() => {
+      termsConditionsUrlRequest = undefined;
+    });
+    termsConditionsUrlRequest
+      .then((url) => {
+        if (isMounted) setTermsConditionsUrl(url);
+      })
+      .catch((error: unknown) => {
+        termsConditionsUrlRequest = undefined;
+        console.warn("Could not load offer terms document link:", error);
       });
 
     return () => {
@@ -204,6 +232,16 @@ export const Footer: React.FC<FooterProps> = ({ compact = false, className }) =>
               <li><Link href="/become-an-agent" className="hover:text-white transition-colors block">Become an Agent</Link></li>
               <li><Link href="/careers" className="hover:text-white transition-colors block">Careers</Link></li>
               <li><Link href="/contact?tab=buy" className="hover:text-white transition-colors block">Book / Reserve / Buy</Link></li>
+              <li>
+                <a
+                  href={termsConditionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  Terms and Conditions
+                </a>
+              </li>
             </ul>
           </div>
 

@@ -7,15 +7,22 @@ import toast from "react-hot-toast";
 interface DocumentUploaderProps {
   value: string;
   onChange: (url: string) => void;
+  label?: string;
+  folder?: "brochures" | "terms-and-conditions";
 }
 
-export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
+export function DocumentUploader({
+  value,
+  onChange,
+  label = "brochure",
+  folder = "brochures",
+}: DocumentUploaderProps) {
   const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File) => {
     if (file.type !== "application/pdf") {
-      toast.error("Choose a PDF brochure.");
+      toast.error(`Choose a PDF ${label}.`);
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -24,11 +31,11 @@ export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
     }
 
     setIsUploading(true);
-    const toastId = toast.loading("Uploading brochure to Cloudinary...");
+    const toastId = toast.loading(`Uploading ${label} to Cloudinary...`);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("folder", "brochures");
+      formData.append("folder", folder);
 
       const response = await fetch("/api/admin/upload", {
         method: "POST",
@@ -51,17 +58,17 @@ export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
           "error" in result &&
           typeof result.error === "string"
             ? result.error
-            : "Failed to upload brochure.";
+            : `Failed to upload ${label}.`;
         throw new Error(errorMessage);
       }
 
       onChange(result.url);
-      toast.success("Brochure uploaded. Save changes to publish it.", {
+      toast.success(`${label} uploaded. Save changes to publish it.`, {
         id: toastId,
       });
     } catch (error: unknown) {
       toast.error(
-        error instanceof Error ? error.message : "Brochure upload failed.",
+        error instanceof Error ? error.message : `${label} upload failed.`,
         { id: toastId }
       );
     } finally {
@@ -93,7 +100,7 @@ export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
               rel="noreferrer"
               className="truncate text-sm font-medium text-slate-700 hover:text-[#0754C6]"
             >
-              View current brochure
+              View current {label}
             </a>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -114,7 +121,7 @@ export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
               type="button"
               onClick={() => onChange("")}
               disabled={isUploading}
-              aria-label="Remove brochure"
+              aria-label={`Remove ${label}`}
               className="inline-flex items-center justify-center rounded-md border border-slate-200 px-3 py-2 text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
             >
               <Trash2 aria-hidden="true" className="h-4 w-4" />
@@ -133,7 +140,7 @@ export function DocumentUploader({ value, onChange }: DocumentUploaderProps) {
           ) : (
             <Upload className="h-4 w-4" />
           )}
-          {isUploading ? "Uploading PDF..." : "Upload brochure PDF"}
+          {isUploading ? "Uploading PDF..." : `Upload ${label} PDF`}
         </button>
       )}
       <p className="text-xs text-slate-500">PDF only, up to 20MB.</p>

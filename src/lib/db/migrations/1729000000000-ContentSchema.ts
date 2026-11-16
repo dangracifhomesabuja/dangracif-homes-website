@@ -102,8 +102,8 @@ export class ContentSchema1729000000000 implements MigrationInterface {
     // Seed default construction milestones
     await queryRunner.query(`
       INSERT INTO "construction_milestones" ("phaseNumber", "date", "title") VALUES
-        (1, 'Apr 2026', 'Groundbreaking & site mobilisation'),
-        (2, 'Oct 2026 – Jun 2027', 'Substructure & superstructure works'),
+        (1, '01 December 2025', 'Groundbreaking & site mobilisation'),
+        (2, 'January 2026 – May 2027', 'Substructure & superstructure works'),
         (3, 'Jul – Nov 2027', 'Roofing, services & finishes'),
         (4, 'Dec 2027', 'Infrastructure completion & handover')
       ON CONFLICT DO NOTHING;

@@ -30,8 +30,8 @@ import { sanitizeBlogContent } from "@/lib/blog-content";
 import { getBlogPostOrderSettings } from "@/lib/db/blog-post-order";
 
 const DEFAULT_MILESTONES = [
-  { phase: "Phase 1", date: "Apr 2026", title: "Groundbreaking & site mobilisation" },
-  { phase: "Phase 2", date: "Oct 2026 – Jun 2027", title: "Substructure & superstructure works" },
+  { phase: "Phase 1", date: "01 December 2025", title: "Groundbreaking & site mobilisation" },
+  { phase: "Phase 2", date: "January 2026 – May 2027", title: "Substructure & superstructure works" },
   { phase: "Phase 3", date: "Jul – Nov 2027", title: "Roofing, services & finishes" },
   { phase: "Phase 4", date: "Dec 2027", title: "Infrastructure completion & handover" },
 ];
@@ -169,6 +169,21 @@ export async function getPublicFooterConfig(): Promise<FooterConfig> {
   } catch (err) {
     console.warn("Could not fetch footer items; using defaults:", err);
     return normalizeFooterConfig(DEFAULT_FOOTER_CONFIG);
+  }
+}
+
+export async function getPublicTermsConditionsUrl(): Promise<string> {
+  try {
+    const config = await (await getDatabaseConnection())
+      .getRepository<SiteConfig>("site_config")
+      .findOne({ where: { key: "terms_conditions_url" } });
+
+    return config?.value.startsWith("https://res.cloudinary.com/")
+      ? "/api/terms-and-conditions"
+      : "/Dangracif-Offer-Letter-and-Addendum.pdf";
+  } catch (error) {
+    console.warn("Could not load offer terms document; using the default PDF:", error);
+    return "/Dangracif-Offer-Letter-and-Addendum.pdf";
   }
 }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { MapPin, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
+const ESTATE_MAP_COORDINATES = "9.1492445,7.3267631";
+const MAPS_PIN_URL = "https://maps.app.goo.gl/gRWxx1fef1UsgpE76";
 
 const LOCATIONS = [
   {
@@ -11,8 +12,6 @@ const LOCATIONS = [
     title: "Fidelis Court — the estate",
     address: "21, Josephat Mojeckwu Avenue, Kubwa F01, Abuja, FCT, Nigeria",
     note: "Fidelis Court is the estate development — site inspections are carried out there. Sales offices are available at both the estate and the developer office.",
-    mapUrl:
-      "https://www.google.com/maps?q=21+Josephat+Mojeckwu+Avenue,+Kubwa,+Abuja&output=embed",
   },
   {
     id: "office",
@@ -24,9 +23,7 @@ const LOCATIONS = [
   },
 ];
 
-// Google Maps embed for Kubwa F01 area (estate location)
-const MAP_EMBED_URL =
-  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.4!2d7.3459!3d9.0914!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x104e0b0000000001%3A0x0!2sFidelis+Court%2C+Kubwa%2C+Abuja!5e0!3m2!1sen!2sng!4v1697000000000";
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${ESTATE_MAP_COORDINATES}&output=embed`;
 
 export const LocationSection: React.FC = () => {
   return (
@@ -69,7 +66,7 @@ export const LocationSection: React.FC = () => {
           {/* Open in Maps button overlay */}
           <div className="absolute top-4 left-4 z-10">
             <a
-              href="https://maps.google.com/?q=Kubwa+F01,+Abuja,+Nigeria"
+              href={MAPS_PIN_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-zinc-200 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition-colors"

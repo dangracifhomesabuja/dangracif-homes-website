@@ -150,6 +150,11 @@ export function AdminSiteConfigClient({
       ? initialConfigs.brochure_url
       : ""
   );
+  const [termsConditionsUrl, setTermsConditionsUrl] = React.useState(
+    typeof initialConfigs.terms_conditions_url === "string"
+      ? initialConfigs.terms_conditions_url
+      : "/Dangracif-Offer-Letter-and-Addendum.pdf"
+  );
   const [footer, setFooter] = React.useState<FooterConfig>(() =>
     normalizeFooterConfig(initialConfigs.footer)
   );
@@ -252,6 +257,7 @@ export function AdminSiteConfigClient({
         site_images: siteImages,
         site_image_captions: siteImageCaptions,
         brochure_url: brochureUrl,
+        terms_conditions_url: termsConditionsUrl,
         footer,
       });
       toast.success("Site changes saved.");
@@ -1012,6 +1018,25 @@ export function AdminSiteConfigClient({
 
       {activeTab === "images" && (
         <section className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="mb-4">
+              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+                <FileText aria-hidden="true" className="h-4 w-4" />
+                Offer terms and conditions
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Upload a replacement PDF. The current offer letter and addendum
+                will remain available until you save the new document.
+              </p>
+            </div>
+            <DocumentUploader
+              value={termsConditionsUrl}
+              onChange={setTermsConditionsUrl}
+              label="offer terms and conditions"
+              folder="terms-and-conditions"
+            />
+          </div>
+
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-4">
               <h3 className="flex items-center gap-2 font-semibold text-slate-900">

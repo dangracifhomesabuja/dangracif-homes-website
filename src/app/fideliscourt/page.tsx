@@ -6,7 +6,10 @@ import { getPublicFacilities } from "@/app/actions/public-content";
 export const dynamic = "force-dynamic";
 
 export default async function FidelisCourtPage() {
-  const [{ images, imageCaptions, brochureUrl, youtubeUrl }, facilities] =
+  const [
+    { images, imageCaptions, brochureUrl, termsConditionsUrl, youtubeUrl },
+    facilities,
+  ] =
     await Promise.all([getPublicSiteOverrides(), getPublicFacilities()]);
 
   return (
@@ -14,6 +17,7 @@ export default async function FidelisCourtPage() {
       overrides={images}
       imageCaptions={imageCaptions}
       brochureUrl={brochureUrl}
+      termsConditionsUrl={termsConditionsUrl}
       youtubeUrl={youtubeUrl}
     >
       <FidelisCourtPageClient facilities={facilities} />

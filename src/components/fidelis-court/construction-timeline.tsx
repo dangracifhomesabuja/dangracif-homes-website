@@ -6,12 +6,12 @@ import { getPublicMilestones } from "@/app/actions/public-content";
 const MILESTONES = [
   {
     number: "01",
-    date: "Apr 2026",
+    date: "01 December 2025",
     title: "Groundbreaking & site mobilisation",
   },
   {
     number: "02",
-    date: "Oct 2026 – Jun 2027",
+    date: "January 2026 – May 2027",
     title: "Substructure & superstructure works",
   },
   {
@@ -33,7 +33,7 @@ export const ConstructionTimeline: React.FC = () => {
     getPublicMilestones().then((dbMilestones) => {
       if (dbMilestones && dbMilestones.length > 0) {
         setMilestones(
-          dbMilestones.map((m: any, idx: number) => ({
+          dbMilestones.map((m, idx) => ({
             number: String(idx + 1).padStart(2, "0"),
             date: m.date,
             title: m.title,
@@ -54,8 +54,8 @@ export const ConstructionTimeline: React.FC = () => {
             Indicative milestones
           </h2>
           <p className="text-sm text-zinc-500 max-w-3xl">
-            14-month delivery programme from October 2026 to December 2027,
-            following groundbreaking in April 2026.
+            Construction commenced on 01 December 2025, with infrastructure
+            completion and handover targeted for December 2027.
           </p>
         </div>
 
