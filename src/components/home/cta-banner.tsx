@@ -1,15 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
 interface CtaBannerProps {
-  onCalculateClick?: () => void;
   className?: string;
 }
 
-export const CtaBanner: React.FC<CtaBannerProps> = ({ onCalculateClick, className }) => {
+export const CtaBanner: React.FC<CtaBannerProps> = ({ className }) => {
   return (
     <section
       className={cn(
@@ -24,13 +24,12 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onCalculateClick, classNam
         </h2>
 
         <div>
-          <button
-            type="button"
-            onClick={onCalculateClick}
+          <Link
+            href="/pricing"
             className="inline-flex items-center justify-center px-8 py-3.5 sm:py-4 rounded-full bg-white text-[#0064CF] font-bold text-sm sm:text-base shadow-md hover:bg-zinc-50 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
           >
             Calculate your payment
-          </button>
+          </Link>
         </div>
       </div>
     </section>

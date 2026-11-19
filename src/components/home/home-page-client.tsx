@@ -46,7 +46,7 @@ export default function HomePageClient() {
           <BrochureBanner />
         </div>
         <div className="order-[5] sm:hidden w-full">
-          <CtaBanner onCalculateClick={scrollToContact} />
+          <CtaBanner />
         </div>
         <div className="order-[6] sm:order-[7]">
           <AmenitiesSection />
@@ -62,7 +62,7 @@ export default function HomePageClient() {
         </div>
       </main>
       <div className="w-full sm:min-h-[calc(100dvh-4.5rem)] lg:min-h-[540px] sm:flex sm:flex-col sm:justify-between hidden">
-        <CtaBanner onCalculateClick={scrollToContact} className="shrink-0" />
+        <CtaBanner className="shrink-0" />
         <Footer compact />
       </div>
       <div className="sm:hidden">
